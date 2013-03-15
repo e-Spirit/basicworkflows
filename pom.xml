@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.espirit.moddev</groupId>
+    <artifactId>basicworkflows</artifactId>
+    <version>${ci.version}</version>
+    <packaging>jar</packaging>
+    <name>basicworkflows</name>
+    <inceptionYear>2012</inceptionYear>
+    <organization>
+        <name>e-Spirit AG</name>
+        <url>http://www.e-spirit.com/</url>
+    </organization>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+
+      <!-- Enabled for unit tests -->
+      <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.9</version>
+      </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>2.13</version>
+          <executions>
+            <execution>
+                <goals>
+                    <goal>integration-test</goal>
+                </goals>
+            </execution>
+          </executions>
+        </plugin>
+
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>jar-with-dependencies</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
+							<archiverConfig>
+							</archiverConfig>
+						</configuration>
+					</execution>
+					<execution>
+						<id>fsm</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<descriptors>
+								<descriptor>src/main/assembly/fsm.xml</descriptor>
+							</descriptors>
+							<appendAssemblyId>true</appendAssemblyId>
+							<finalName>${project.artifactId}</finalName>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.4</version>
+				<executions>
+					<execution>
+						<id>rename</id>
+						<phase>package</phase>
+						<configuration>
+							<tasks>
+								<property name="compile_classpath" refid="maven.compile.classpath" />
+								<property name="runtime_classpath" refid="maven.runtime.classpath" />
+								<property name="test_classpath" refid="maven.test.classpath" />
+								<property name="plugin_classpath" refid="maven.plugin.classpath" />
+								<move file="target/${project.artifactId}-fsm.zip" tofile="target/${project.artifactId}-${ci.version}.fsm" />
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+		<defaultGoal>package</defaultGoal>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+	</build>
+
+    <!-- set dependencies -->
+    <dependencies>
+
+        <!-- FirstSpirit -->
+        <dependency>
+            <groupId>de.espirit.firstspirit</groupId>
+            <artifactId>fs-access</artifactId>
+            <version>${firstspirit.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.espirit.firstspirit</groupId>
+            <artifactId>client</artifactId>
+            <version>${firstspirit.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- testing -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>1.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.2</version>
+            <scope>test</scope>
+        </dependency>
+
+		<!-- logging -->
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.16</version>
+            <scope>test</scope>
+		</dependency>
+
+        <!-- mocking -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.8.5</version>
+            <scope>test</scope>
+        </dependency>
+       <dependency>
+          <groupId>org.powermock</groupId>
+          <artifactId>powermock-module-junit4</artifactId>
+          <version>1.4.12</version>
+          <scope>test</scope>
+       </dependency>
+       <dependency>
+          <groupId>org.powermock</groupId>
+          <artifactId>powermock-api-mockito</artifactId>
+          <version>1.4.12</version>
+          <scope>test</scope>
+       </dependency>
+
+    </dependencies>
+
+    <profiles>
+           <profile>
+              <id>license-header</id>
+              <!--
+                used to insert a specific header to all src files (e.g. apache license)
+                usage: mvn -Plicense-header
+              -->
+              <build>
+                  <plugins>
+                      <plugin>
+                          <groupId>org.codehaus.mojo</groupId>
+                          <artifactId>license-maven-plugin</artifactId>
+                          <version>1.3</version>
+                          <configuration>
+                            <verbose>true</verbose>
+                            <addSvnKeyWords>false</addSvnKeyWords>
+                            <processStartTag>**********************************************************************</processStartTag>
+                            <processEndTag>**********************************************************************</processEndTag>
+                            <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+                          </configuration>
+                          <executions>
+                            <execution>
+                              <id>first</id>
+                              <goals>
+                                <goal>update-file-header</goal>
+                              </goals>
+                              <phase>process-sources</phase>
+                              <configuration>
+                                <licenseName>apache_v2</licenseName>
+                                <roots>
+                                  <root>src</root>
+                                  <root>test</root>
+                                </roots>
+                              </configuration>
+                            </execution>
+                          </executions>
+                    </plugin>
+                  </plugins>
+              </build>
+            </profile>
+            <profile>
+              <id>license-aggregate</id>
+              <!--
+                used to generate a file containing all third party licenses in target folder
+                usage: mvn -Plicense-aggregate
+              -->
+              <build>
+                <plugins>
+                  <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>1.2</version>
+                    <configuration>
+                        <failIfWarning>true</failIfWarning>
+                        <useMissingFile>true</useMissingFile>
+                        <excludedGroups>com\.espirit.moddev*|de\.espirit\.firstspirit*</excludedGroups>
+                        <excludedArtifacts>fsworkflows</excludedArtifacts>
+                        <verbose>true</verbose>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>download-licenses</id>
+                            <goals>
+                                <goal>download-licenses</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>aggregate-add-third-party</id>
+                            <goals>
+                                <goal>aggregate-add-third-party</goal>
+                            </goals>
+                            <phase>process-resources</phase>
+                        </execution>
+                    </executions>
+                  </plugin>
+                </plugins>
+              </build>
+            </profile>
+
+        </profiles>
+
+</project>

@@ -1,0 +1,14 @@
+atlassian-ide-plugin.xml
+.DS_Store
+Icon?
+*.class
+target/
+/.idea
+/*.iml
+/*.ipr
+/*.iws
+/*/*.iml
+/*/*.ipr
+/*/*.iws
+.project
+.settings
