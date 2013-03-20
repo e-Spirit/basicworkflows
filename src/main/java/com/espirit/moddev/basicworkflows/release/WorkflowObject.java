@@ -44,10 +44,7 @@ import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.or.schema.Entity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.util.*;
 
 /**
  * This class provides methods to get the references of the workflow object and store them in the session.
@@ -112,20 +109,7 @@ public class WorkflowObject {
                         referencedObjects.add(referenceEntry);
                     }
                 }
-                // add outgoing references of page sections
-                for (Section section : page.getChildren(Section.class, true)) {
-                    if (!(section instanceof SectionReference)) {
-                        for(ReferenceEntry referenceEntry : section.getOutgoingReferences()) {
-                            if(!releaseWithMedia) {
-                                if(!referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
-                                    referencedObjects.add(referenceEntry);
-                                }
-                            } else {
-                                referencedObjects.add(referenceEntry);
-                            }
-                        }
-                    }
-                }
+                referencedObjects.addAll(getRefObjectsFromSection(page, releaseWithMedia));
             }
 
 
@@ -140,33 +124,7 @@ public class WorkflowObject {
         } else if (storeElement instanceof Page) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement, releaseWithMedia));
-
-            // add outgoing references of page sections
-            for (Section section : storeElement.getChildren(Section.class, true)) {
-                if (!(section instanceof SectionReference) && !(section instanceof Content2Section)) {
-                    for(ReferenceEntry referenceEntry : section.getOutgoingReferences()) {
-                        if(!releaseWithMedia) {
-                            if(!referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
-                                referencedObjects.add(referenceEntry);
-                            }
-                        } else {
-                            referencedObjects.add(referenceEntry);
-                        }
-                    }
-/** documentation example - begin **/
-                } else if(section instanceof SectionReference){
-                    for(ReferenceEntry referenceEntry : ((SectionReference) section).getReference().getOutgoingReferences()) {
-                        if(!releaseWithMedia) {
-                            if(!referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
-                                referencedObjects.add(referenceEntry);
-                            }
-                        } else {
-                            referencedObjects.add(referenceEntry);
-                        }
-                    }
-                }
-/** documentation example - end **/
-            }
+            referencedObjects.addAll(getRefObjectsFromSection(storeElement, releaseWithMedia));
 
         } else if (storeElement instanceof PageFolder) {
             // add outgoing references
@@ -203,6 +161,36 @@ public class WorkflowObject {
         }
         return referencedObjects;
     }
+
+    /**
+     * This method gets the referenced objects from sections of a page that prevent the release.
+     *
+     * @param page The page where to check the sections
+     * @param releaseWithMedia Determines if media references should also be checked
+     * @return a list of elements that reference the workflow object.
+     */
+    public List<Object> getRefObjectsFromSection(StoreElement page, boolean releaseWithMedia) {
+            ArrayList<Object>referencedObjects = new ArrayList<Object>();
+
+            // add outgoing references of page sections
+            for (Section section : page.getChildren(Section.class, true)) {
+/** documentation example - begin **/
+                if (!(section instanceof Content2Section)) {
+/** documentation example - end **/
+                    for(ReferenceEntry referenceEntry : section.getOutgoingReferences()) {
+                        if(!releaseWithMedia) {
+                            if(!referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
+                                referencedObjects.add(referenceEntry);
+                            }
+                        } else {
+                            referencedObjects.add(referenceEntry);
+                        }
+                    }
+                }
+            }
+        return referencedObjects;
+    }
+
 
     /**
      * This method gets the referenced objects from the workflow object (Entity) that prevent the release.
@@ -264,6 +252,12 @@ public class WorkflowObject {
                 } else {
                     idProvider = (IDProvider) ((ReferenceEntry) object).getReferencedObject();
                 }
+
+/** documentation example - begin **/
+                if(idProvider instanceof Section) {
+                    idProvider = idProvider.getParent().getParent();
+                }
+/** documentation example - end **/
 
                 // check if current PAGE within PAGEREF-Release
                 boolean isCurrentPage = false;

@@ -96,7 +96,7 @@
 								<property name="runtime_classpath" refid="maven.runtime.classpath" />
 								<property name="test_classpath" refid="maven.test.classpath" />
 								<property name="plugin_classpath" refid="maven.plugin.classpath" />
-								<move file="target/${project.artifactId}-fsm.zip" tofile="target/${project.artifactId}-${ci.version}.fsm" />
+								<move file="target/${project.artifactId}-fsm.zip" tofile="target/${project.artifactId}.fsm" />
 							</tasks>
 						</configuration>
 						<goals>

@@ -148,7 +148,7 @@ public class DeleteObject {
                 result = false;
             }
         }
-        workflowScriptContext.getTask().closeTask();
+//        workflowScriptContext.getTask().closeTask();
     }
 
 

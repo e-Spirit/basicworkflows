@@ -23,6 +23,7 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.FsException;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.StoreElement;
@@ -113,6 +114,21 @@ public class WorkflowObject {
         if (storeElement instanceof PageRef) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement));
+
+            // in case of webedit add page references
+            if(workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+                referencedObjects.addAll(getReferences(((PageRef) storeElement).getPage()));
+                // remove added workflow element
+                referencedObjects.remove(storeElement);
+
+/** documentation example - begin **/
+                for (Section section : ((PageRef) storeElement).getPage().getChildren(Section.class, true)) {
+                    referencedObjects.addAll(getReferences(section));
+                }
+/** documentation example - end **/
+
+            }
+
 
         } else if (storeElement instanceof DocumentGroup) {
                 // add outgoing references

@@ -43,6 +43,7 @@ public class FsLocale {
     private WorkflowScriptContext workflowScriptContext;
     /** The current context (for WorkflowStatusProvider). */
     private BaseContext baseContext;
+ public final Class<?> LOGGER = FsLocale.class;
 
     /**
      * Constructor for FsLocale.
@@ -113,7 +114,7 @@ public class FsLocale {
             }
             return language;
         } else {
-            return workflowScriptContext.getProject().getLanguage(locale.toString().toUpperCase());
+            return workflowScriptContext.getProject().getLanguage(locale.getLanguage().toUpperCase());
         }
     }
 
