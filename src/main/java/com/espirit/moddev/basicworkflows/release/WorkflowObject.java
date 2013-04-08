@@ -270,7 +270,7 @@ public class WorkflowObject {
                 }
 
                 // if not current PAGE within PAGEREF-Release or media and release with media is not checked
-                if(!isCurrentPage || (idProvider instanceof Media && !releaseWithMedia)) {
+                if(!isCurrentPage && idProvider != null || (idProvider instanceof Media && !releaseWithMedia )) {
                     idProvider.refresh();
                     // check if only media is referenced except templates
                     if(!(idProvider instanceof Media) && !(idProvider instanceof TemplateStoreElement) && !(idProvider instanceof Content2)) {
