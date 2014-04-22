@@ -23,6 +23,7 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.FsException;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+import de.espirit.common.TypedFilter;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.store.IDProvider;
@@ -41,7 +42,7 @@ import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
-import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.access.store.templatestore.*;
 import de.espirit.firstspirit.store.access.globalstore.GlobalContentAreaImpl;
 import de.espirit.or.schema.Entity;
 
@@ -129,19 +130,14 @@ public class WorkflowObject {
 
             }
 
-
-        } else if (storeElement instanceof DocumentGroup) {
-                // add outgoing references
-                referencedObjects.addAll(getReferences(storeElement));
-
-        } else if (storeElement instanceof PageRefFolder) {
-            // add outgoing references
-            referencedObjects.addAll(getReferences(storeElement));
-
-        } else if (storeElement instanceof GCAPage) {
-            // add outgoing references
-            referencedObjects.addAll(getReferences(storeElement));
-
+        } else if (storeElement instanceof DocumentGroup
+	                || storeElement instanceof PageRefFolder
+	                || storeElement instanceof GCAPage
+	                || storeElement instanceof PageFolder
+	                || storeElement instanceof Media
+	                || storeElement instanceof MediaFolder) {
+			// add outgoing references
+			referencedObjects.addAll(getReferences(storeElement));
 
         } else if (storeElement instanceof Page) {
             // add outgoing references
@@ -153,44 +149,52 @@ public class WorkflowObject {
             }
 /** documentation example - end **/
 
-        } else if (storeElement instanceof PageFolder) {
-            // add outgoing references
-            referencedObjects.addAll(getReferences(storeElement));
-
-        } else if (storeElement instanceof Media) {
-            // add outgoing references
-            referencedObjects.addAll(getReferences(storeElement));
-
-        } else if (storeElement instanceof MediaFolder) {
-            // add outgoing references
-            referencedObjects.addAll(getReferences(storeElement));
-
         } else if (storeElement instanceof GlobalContentAreaImpl) {
             // Element is a content folder object -> aborting" (make sure this test occurs before the gcafolder-test)
-            workflowScriptContext.gotoErrorState(bundle.getString("deleteGCAnotPossible"), new FsException());
+	        abortDeletion("deleteGCAnotPossible");
 
         } else if (storeElement instanceof GCAFolder) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement));
 
+        } else if (storeElement instanceof TemplateStoreElement || storeElement instanceof Query) { // In FirstSpirit 5.0 Query does not inherit from TemplateStoreElement
+	        // add outgoing references
+	        referencedObjects.addAll(getReferences(storeElement));
+
+	        if (storeElement instanceof Schema && referencedObjects.isEmpty()) {
+		        TypedFilter<StoreElement> filter = new TypedFilter<StoreElement>(StoreElement.class) {
+			        @Override
+			        public boolean accept(final StoreElement storeElement) {
+				        return storeElement instanceof TableTemplate || storeElement instanceof Query;
+			        }
+		        };
+
+		        for (StoreElement childElement : storeElement.getChildren(filter, true)) {
+			        referencedObjects.addAll(getReferences(childElement));
+		        }
+	        }
+
         } else if (storeElement instanceof ProjectProperties) {
             // Element is a project property object -> aborting"
-            workflowScriptContext.gotoErrorState(bundle.getString("deletePPnotPossible"), new FsException());
+	        abortDeletion("deletePPnotPossible");
 
         } else if (storeElement instanceof Content2) {
             // Element is a content2 folder object -> aborting"
-            workflowScriptContext.gotoErrorState(bundle.getString("deleteC2notPossible"), new FsException());
+	        abortDeletion("deleteC2notPossible");
 
         } else if (storeElement instanceof ContentFolder) {
             // Element is a content folder object -> aborting"
-            workflowScriptContext.gotoErrorState(bundle.getString("deleteCFnotPossible"), new FsException());
+	        abortDeletion("deleteCFnotPossible");
         }
         storeReferences(referencedObjects);
         return referencedObjects;
     }
 
+	private void abortDeletion(String errorMessageKey) {
+		workflowScriptContext.gotoErrorState(bundle.getString(errorMessageKey), new FsException());
+	}
 
-    /**
+	/**
      * Convenience method to get referenced objects of storeElement and its parents.
      *
      * @param storeElement The storeElement to get references from.

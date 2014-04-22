@@ -52,7 +52,7 @@ public class WfShowWarningExecutable extends WorkflowExecutable implements Execu
         try {
             workflowScriptContext.doTransition("trigger_reference_ok_2");
         } catch (IllegalAccessException e) {
-            Logging.logError("Workflow force transition failed!\n" + e, LOGGER);
+            Logging.logError("Workflow force transition failed!", e, LOGGER);
             // show error message
             showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("displayWarningFailed"));
         }

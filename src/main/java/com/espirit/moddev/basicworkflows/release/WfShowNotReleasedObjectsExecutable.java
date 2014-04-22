@@ -61,7 +61,7 @@ public class WfShowNotReleasedObjectsExecutable extends WorkflowExecutable imple
         try {
             workflowScriptContext.doTransition("trigger_check_not_released_objects");
         } catch (IllegalAccessException e) {
-            Logging.logError("Workflow Re-Release Objects failed!\n" + e, LOGGER);
+            Logging.logError("Workflow Re-Release Objects failed!", e, LOGGER);
             // show error message
             showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("reReleaseFailed"));
         }

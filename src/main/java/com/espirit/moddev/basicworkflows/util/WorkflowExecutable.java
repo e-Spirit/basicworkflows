@@ -20,6 +20,7 @@
 
 package com.espirit.moddev.basicworkflows.util;
 
+import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.OperationAgent;
 import de.espirit.firstspirit.ui.operations.RequestOperation;
@@ -28,55 +29,101 @@ import java.io.Writer;
 import java.util.Map;
 
 /**
- * Abstract WorkflowExecutable that contains the basic methods used in all executables.
- *
+ * Abstract WorkflowExecutable that contains the basic methods used in all
+ * executables.
+ * 
  * @author stephan
  * @since 1.0
  */
 public class WorkflowExecutable {
 
-    /** {@inheritDoc} */
-    public Object execute(Map<String, Object> context, Writer out, Writer err) {
-        return execute(context);
-    }
+	/** The logging class to use. */
+	public static final Class<?> LOGGER = WorkflowExecutable.class;
 
-    /**
-     * Main executable method, replaced by actual implementations.
-     *
-     * @param context The current FirstSpirit context.
-     * @return The context object.
-     */
-    protected Object execute(Map<String, Object> context) {
-        return context;
-    }
+	/** {@inheritDoc} */
+	public Object execute(Map<String, Object> context, Writer out, Writer err) {
+		return execute(context);
+	}
 
-    /**
-     * A convenience method to display a message pop-up in the client.
-     *
-     * @param title The message title.
-     * @param message The message to display.
-     * @param workflowScriptContext The context to use.
-     */
-    protected void showDialog(WorkflowScriptContext workflowScriptContext, String title, String message){
-        try {
-            OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-            RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-            requestOperation.setTitle(title);
-            requestOperation.perform(message);
-        } catch (IllegalStateException e) {
-            // catch exception for integration test case
-        }
-    }
+	/**
+	 * Main executable method, replaced by actual implementations.
+	 * 
+	 * @param context
+	 *            The current FirstSpirit context.
+	 * @return The context object.
+	 */
+	protected Object execute(Map<String, Object> context) {
+		return context;
+	}
 
-    /**
-     * Convenience method to get the value of a custom workflow attribute.
-     *
-     * @param workflowScriptContext The context to use.
-     * @param attribute The attribute to get the value for.
-     * @return the value.
-     */
-    protected Object getCustomAttribute(WorkflowScriptContext workflowScriptContext, String attribute) {
-        return workflowScriptContext.getTask().getCustomAttributes().get(attribute);
-    }
+	/**
+	 * A convenience method to display a message pop-up in the client.
+	 * 
+	 * @param title
+	 *            The message title.
+	 * @param message
+	 *            The message to display.
+	 * @param workflowScriptContext
+	 *            The context to use.
+	 */
+	protected void showDialog(WorkflowScriptContext workflowScriptContext, String title, String message) {
+		try {
+			OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+			RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+			if (requestOperation != null) {
+				requestOperation.setTitle(title);
+				requestOperation.perform(message);
+			} // else do nothing (requestOperation == null for integration test
+				// case)
+		} catch (IllegalStateException e) {
+			Logging.logDebug("Show dialog failed.", e, LOGGER);
+			// catch exception for integration test case
+		}
+	}
+
+	/**
+	 * A convenience method to display a question pop-up in the client
+	 * 
+	 * @param workflowScriptContext
+	 *            The context to use.
+	 * @param title
+	 *            The pop-up title.
+	 * @param question
+	 *            The question to display.
+	 * 
+	 * @return Boolean indicating whether the question was answered with yes or
+	 *         no
+	 */
+	protected boolean showQuestionDialog(WorkflowScriptContext workflowScriptContext, String title, String question) {
+		boolean answer = true;
+		try {
+			OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+			RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+			if (requestOperation != null) {
+				requestOperation.setTitle(title);
+				requestOperation.addYes();
+				RequestOperation.Answer noAnswer = requestOperation.addNo();
+				RequestOperation.Answer actualAnswer = requestOperation.perform(question);
+				answer = !noAnswer.equals(actualAnswer);
+			}
+		} catch (IllegalStateException e) {
+			Logging.logDebug("Show dialog failed.", e, LOGGER);
+			// catch exception for integration test case
+		}
+		return answer;
+	}
+
+	/**
+	 * Convenience method to get the value of a custom workflow attribute.
+	 * 
+	 * @param workflowScriptContext
+	 *            The context to use.
+	 * @param attribute
+	 *            The attribute to get the value for.
+	 * @return the value.
+	 */
+	protected Object getCustomAttribute(WorkflowScriptContext workflowScriptContext, String attribute) {
+		return workflowScriptContext.getTask().getCustomAttributes().get(attribute);
+	}
 
 }

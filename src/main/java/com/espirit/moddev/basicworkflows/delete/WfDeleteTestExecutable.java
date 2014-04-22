@@ -64,7 +64,7 @@ public class WfDeleteTestExecutable extends WorkflowExecutable implements Execut
             try {
                 workflowScriptContext.doTransition("trigger_test_finished");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Test Delete failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Test Delete failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("testDeleteFailed"));
             }
@@ -86,7 +86,7 @@ public class WfDeleteTestExecutable extends WorkflowExecutable implements Execut
                 }
                 workflowScriptContext.doTransition("trigger_test_failed");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Test Delete failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Test Delete failed!", e, LOGGER);
                 // show error message
                 OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
                 RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);

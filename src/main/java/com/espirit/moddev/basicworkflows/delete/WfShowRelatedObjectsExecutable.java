@@ -66,7 +66,7 @@ public class WfShowRelatedObjectsExecutable extends WorkflowExecutable implement
         try {
             workflowScriptContext.doTransition("trigger_check_related_objects");
         } catch (IllegalAccessException e) {
-            Logging.logError("Workflow Re-Delete Objects failed!\n" + e, LOGGER);
+            Logging.logError("Workflow Re-Delete Objects failed!", e, LOGGER);
             // show error message
             showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("reDeleteFailed"));
         }

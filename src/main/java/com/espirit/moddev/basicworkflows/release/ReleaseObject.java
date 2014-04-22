@@ -210,7 +210,7 @@ public class ReleaseObject {
                                                 result = false;
                                             }
                                         } catch (Exception e) {
-                                            Logging.logError("Exception during Release of " + idProvider + "\n" + e, LOGGER);
+                                            Logging.logError("Exception during Release of " + idProvider, e, LOGGER);
                                             result = false;
                                         }
                                     }
@@ -226,7 +226,7 @@ public class ReleaseObject {
                     }
                 }
             } catch (Exception e) {
-                Logging.logError("Exception during Release " + e, LOGGER);
+                Logging.logError("Exception during Release ", e, LOGGER);
                 result = false;
             }
         }
@@ -249,7 +249,7 @@ public class ReleaseObject {
                 requestOperation.setTitle(bundle.getString("errorLocked"));
                 requestOperation.perform(errorMsg.toString());
             } catch (IllegalStateException e) {
-                Logging.logWarning("Displaying locked elements failed.", LOGGER);
+                Logging.logWarning("Displaying locked elements failed.", e, LOGGER);
             }
         }
 
@@ -270,7 +270,7 @@ public class ReleaseObject {
                 requestOperation.setTitle(bundle.getString("errorPermission"));
                 requestOperation.perform(errorMsg.toString());
             } catch (IllegalStateException e) {
-                Logging.logWarning("Displaying elements without permission failed.", LOGGER);
+                Logging.logWarning("Displaying elements without permission failed.", e, LOGGER);
             }
         }
 
@@ -290,7 +290,7 @@ public class ReleaseObject {
                 }
                 requestOperation.perform(errorMsg.toString());
             } catch (IllegalStateException e) {
-                Logging.logWarning("Displaying unreleased elements failed.", LOGGER);
+                Logging.logWarning("Displaying unreleased elements failed.", e, LOGGER);
             }
         }
         return result;
@@ -314,7 +314,7 @@ public class ReleaseObject {
                     content2.refresh();
                     content2.getParent().refresh();
                 } catch (LockException e) {
-                    Logging.logError("Exception during Release of " + entity + "\n" + e, LOGGER);
+                    Logging.logError("Exception during Release of " + entity, e, LOGGER);
                     result = false;
                 }
             }
@@ -333,7 +333,7 @@ public class ReleaseObject {
      * @return the error message.
      */
     private String createErrorString(Object id) {
-        final QueryAgent queryAgent = workflowScriptContext.requireSpecialist(QueryAgent.TYPE);
+    	final QueryAgent queryAgent = workflowScriptContext.requireSpecialist(QueryAgent.TYPE);
         final Iterable<IDProvider> hits = queryAgent.answer("fs.id=" + id);
         IDProvider element = hits.iterator().next();
         if(element.hasUid()) {
@@ -341,5 +341,6 @@ public class ReleaseObject {
         } else {
             return "";
         }
+	       
     }
 }

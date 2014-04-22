@@ -39,6 +39,8 @@ import de.espirit.firstspirit.access.store.pagestore.PageFolder;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
+import de.espirit.firstspirit.access.store.templatestore.Template;
+import de.espirit.firstspirit.access.store.templatestore.TemplateFolder;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.Iterator;
@@ -69,51 +71,50 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable implement
             String message = "";
 
             // check if folder has children
-            @SuppressWarnings({"unchecked"}) final StoreElementFilter filter = on(PageFolder.class, Page.class, PageRefFolder.class, PageRef.class, DocumentGroup.class, ContentFolder.class, Content2.class, MediaFolder.class, Media.class, GCAPage.class, GCAFolder.class);
-            if(storeElement.getChildren(filter, true).getFirst() != null) {
-                message += bundle.getString("hasChildren");
-            }
+            @SuppressWarnings({"unchecked"}) final StoreElementFilter filter = on(TemplateFolder.class, Template.class, PageFolder.class, Page.class, PageRefFolder.class, PageRef.class, DocumentGroup.class, ContentFolder.class, Content2.class, MediaFolder.class, Media.class, GCAPage.class, GCAFolder.class);
+	        if (storeElement.getChildren(filter, true).getFirst() == null
+		        || showQuestionDialog(workflowScriptContext, bundle.getString("warning"), bundle.getString("hasChildren"))) {
 
-            // check if last element in pageref-folder is to be deleted
-            if((storeElement instanceof PageRefFolder || storeElement instanceof PageRef || storeElement instanceof DocumentGroup) && !workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
-                @SuppressWarnings({"unchecked"}) final StoreElementFilter sitestoreFilter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
-                Iterator iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
-                // folder has at least one element
-                iter.next();
-                // check if there are more
-                if(!iter.hasNext()) {
-                    if(message.length()==0) {
-                        message += "\n\n";
-                    }
-                    message += bundle.getString("lastElement")+"\n";
-                }
-            }
+		        // check if last element in pageref-folder is to be deleted
+		        if ((storeElement instanceof PageRefFolder || storeElement instanceof PageRef || storeElement instanceof DocumentGroup) && !workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+			        @SuppressWarnings({ "unchecked" }) final StoreElementFilter sitestoreFilter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
+			        Iterator iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
+			        // folder has at least one element
+			        iter.next();
+			        // check if there are more
+			        if (!iter.hasNext()) {
+				        if (message.length() == 0) {
+					        message += "\n\n";
+				        }
+				        message += bundle.getString("lastElement") + "\n";
+			        }
+		        }
 
-            if(message.length()>0) {
-                // show warning message
-                showDialog(workflowScriptContext, bundle.getString("warning"), message);
-                try {
-                    workflowScriptContext.doTransition("trigger_folder_ok");
-                } catch (IllegalAccessException e) {
-                    Logging.logError("Workflow Check failed!\n" + e, LOGGER);
-                }
-            } else {
-                // do nothing if folder has no children
-                try {
-                    workflowScriptContext.doTransition("trigger_folder_ok");
-                } catch (IllegalAccessException e) {
-                    Logging.logError("Workflow Check failed!\n" + e, LOGGER);
-                }
-            }
+		        if (message.length() > 0) {
+			        // show warning message
+			        showDialog(workflowScriptContext, bundle.getString("warning"), message);
+		        }
+
+		        try {
+			        workflowScriptContext.doTransition("trigger_folder_ok");
+		        } catch (IllegalAccessException e) {
+			        Logging.logError("Workflow Check failed!", e, LOGGER);
+		        }
+	        } else {
+		        try {
+			        workflowScriptContext.doTransition("trigger_abort_deletion");
+		        } catch (IllegalAccessException e) {
+			        Logging.logError("Workflow Check failed!", e, LOGGER);
+		        }
+	        }
         } else if(getCustomAttribute(workflowScriptContext, "wfFolderCheckFail") != null && getCustomAttribute(workflowScriptContext, "wfFolderCheckFail").equals("true")) {
             // fail test if wfFolderCheckFail is set
             try {
                 workflowScriptContext.doTransition("trigger_check_conflict");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Check failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Check failed!", e, LOGGER);
             }
         }
-    return true;
+        return true;
     }
-
 }

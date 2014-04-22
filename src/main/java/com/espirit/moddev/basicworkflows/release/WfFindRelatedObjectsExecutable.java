@@ -62,7 +62,7 @@ public class WfFindRelatedObjectsExecutable extends WorkflowExecutable implement
             try {
                 workflowScriptContext.doTransition("trigger_reference_ok");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Release failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
             }
@@ -71,7 +71,7 @@ public class WfFindRelatedObjectsExecutable extends WorkflowExecutable implement
             try {
                 workflowScriptContext.doTransition("trigger_release_conflict");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Release failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
             }

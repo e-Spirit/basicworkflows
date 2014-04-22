@@ -61,7 +61,7 @@ public class WfFindRelatedObjectsExecutable extends WorkflowExecutable implement
             try {
                 workflowScriptContext.doTransition("trigger_reference_ok");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Delete failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Delete failed!", e, LOGGER);
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("deleteFailed"));
             }
         } else {
@@ -69,7 +69,7 @@ public class WfFindRelatedObjectsExecutable extends WorkflowExecutable implement
             try {
                 workflowScriptContext.doTransition("trigger_reference_conflict");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Delete failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Delete failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("deleteFailed"));
             }

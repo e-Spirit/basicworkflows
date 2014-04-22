@@ -40,6 +40,7 @@ import de.espirit.firstspirit.access.store.pagestore.*;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
+import de.espirit.firstspirit.access.store.templatestore.Query;
 import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.or.schema.Entity;
@@ -273,7 +274,7 @@ public class WorkflowObject {
                 if(!isCurrentPage && idProvider != null || (idProvider instanceof Media && !releaseWithMedia )) {
                     idProvider.refresh();
                     // check if only media is referenced except templates
-                    if(!(idProvider instanceof Media) && !(idProvider instanceof TemplateStoreElement) && !(idProvider instanceof Content2)) {
+                    if(!(idProvider instanceof Media) && !(idProvider instanceof TemplateStoreElement) && !(idProvider instanceof Content2) && !(idProvider instanceof Query)) {
                         Logging.logWarning("No media:" + idProvider.getUid(), LOGGER);
                         referenceResult.setOnlyMedia(false);
                         // check if is no media and not released
@@ -284,7 +285,7 @@ public class WorkflowObject {
                         }
                     }
                     // check if all references are released
-                    if(!(idProvider instanceof TemplateStoreElement) && !(idProvider instanceof Content2) && idProvider.getReleaseStatus() == IDProvider.NEVER_RELEASED) {
+                    if(!(idProvider instanceof TemplateStoreElement) && !(idProvider instanceof Content2) && !(idProvider instanceof Query) && idProvider.isReleaseSupported() && idProvider.getReleaseStatus() == IDProvider.NEVER_RELEASED) {
                         Logging.logWarning("Never released:" + idProvider.getUid(), LOGGER);
                         referenceResult.setAllObjectsReleased(false);
                         notReleasedElements.put(idProvider.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + idProvider.getUid() + ", " + idProvider.getId() + ")", idProvider.getUidType());

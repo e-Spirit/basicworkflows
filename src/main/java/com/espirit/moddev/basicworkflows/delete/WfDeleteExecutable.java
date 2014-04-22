@@ -57,7 +57,7 @@ public class WfDeleteExecutable extends WorkflowExecutable implements Executable
                 workflowScriptContext.doTransition("trigger_finish");
                 Logging.logInfo("Workflow Delete successful.", LOGGER);
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Delete failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Delete failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("deleteFailed"));
             }
@@ -66,7 +66,7 @@ public class WfDeleteExecutable extends WorkflowExecutable implements Executable
             try {
                 workflowScriptContext.doTransition("trigger_delete_failed");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Delete failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Delete failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("deleteFailed"));
             }

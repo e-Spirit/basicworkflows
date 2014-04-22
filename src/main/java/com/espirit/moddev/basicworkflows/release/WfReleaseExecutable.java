@@ -92,7 +92,7 @@ public class WfReleaseExecutable extends WorkflowExecutable implements Executabl
                 workflowScriptContext.doTransition("trigger_finish");
                 Logging.logInfo("Workflow Release successful.", LOGGER);
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Release failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
             }
@@ -100,7 +100,7 @@ public class WfReleaseExecutable extends WorkflowExecutable implements Executabl
             try {
                 workflowScriptContext.doTransition("trigger_release_failed");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Release failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
             }

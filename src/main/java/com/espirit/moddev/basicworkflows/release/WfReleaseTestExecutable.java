@@ -87,7 +87,7 @@ public class WfReleaseTestExecutable extends WorkflowExecutable implements Execu
                 workflowScriptContext.doTransition("trigger_test_finished");
                 Logging.logInfo("Workflow Test Release successful.", LOGGER);
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Test Release failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Test Release failed!\n", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("testReleaseFailed"));
             }
@@ -95,7 +95,7 @@ public class WfReleaseTestExecutable extends WorkflowExecutable implements Execu
             try {
                 workflowScriptContext.doTransition("trigger_test_failed");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Test Release failed!\n" + e, LOGGER);
+                Logging.logError("Workflow Test Release failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("testReleaseFailed"));
             }

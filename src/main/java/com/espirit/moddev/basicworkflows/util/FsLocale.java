@@ -20,6 +20,7 @@
 
 package com.espirit.moddev.basicworkflows.util;
 
+import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;

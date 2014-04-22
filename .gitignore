@@ -12,3 +12,5 @@ target/
 /*/*.iws
 .project
 .settings
+.classpath
+/bin

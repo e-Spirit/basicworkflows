@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,13 @@
  * **********************************************************************
  */
 package com.espirit.moddev.basicworkflows.delete;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.AccessUtil;
@@ -36,7 +43,7 @@ import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
-import java.util.*;
+import org.apache.log4j.LogManager;
 
 import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
 
@@ -69,13 +76,13 @@ public class DeleteObject {
     private List<IDProvider> deleteObjects = new ArrayList<IDProvider>();
     /** List of objects that should be released. */
     private List<IDProvider> releaseObjects = new ArrayList<IDProvider>();
-
     /**
      * Constructor for DeleteObject.
      *
      * @param workflowScriptContext The workflowScriptContext from the workflow.
      */
     public DeleteObject(WorkflowScriptContext workflowScriptContext) {
+    	  
         this.workflowScriptContext = workflowScriptContext;
         // check if content2 object
         if(workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
@@ -102,7 +109,7 @@ public class DeleteObject {
         } else if(idProvider != null) {
             deleteIDProvider(checkOnly);
         }
-    return result;
+    	return result;
     }
 
 
@@ -119,7 +126,8 @@ public class DeleteObject {
             session.delete(entity);
             session.commit();
         } catch (Exception e) {
-            Logging.logError(EXCEPTION + entity + "\n" + e, LOGGER);
+            Logging.logError(EXCEPTION + entity , e, LOGGER);
+           
         } finally {
             try {
                 // lock/unlock content2 to force a refresh
@@ -127,9 +135,9 @@ public class DeleteObject {
                 content2.save();
                 content2.setLock(false, false);
             } catch (LockException e) {
-                Logging.logError(EXCEPTION + entity + "\n" + e, LOGGER);
+                Logging.logError(EXCEPTION + entity, e, LOGGER);
             } catch (ElementDeletedException e) {
-                Logging.logError(EXCEPTION + entity + "\n" + e, LOGGER);
+                Logging.logError(EXCEPTION + entity, e, LOGGER);
             }
         }
 
@@ -144,11 +152,10 @@ public class DeleteObject {
                 releaseSession.delete(entityRelease);
                 releaseSession.commit();
             } catch (Exception e) {
-                Logging.logError(EXCEPTION + entityRelease + "\n" + e, LOGGER);
+                Logging.logError(EXCEPTION + entityRelease, e, LOGGER);
                 result = false;
             }
         }
-//        workflowScriptContext.getTask().closeTask();
     }
 
 
@@ -181,13 +188,12 @@ public class DeleteObject {
             }
             storeReferences(lockedElements);
         } else {
-            if(elementList.get(DEL_OBJECTS) != null) {
+            if(elementList.get(DEL_OBJECTS) != null && !elementList.get(DEL_OBJECTS).isEmpty()) {
                 deleteElements(elementList.get(DEL_OBJECTS));
             }
-            if(elementList.get(REL_OBJECTS) != null) {
+            if(elementList.get(REL_OBJECTS) != null && !elementList.get(REL_OBJECTS).isEmpty()) {
                 releaseElements(elementList.get(REL_OBJECTS));
             }
-
         }
     }
 
@@ -202,9 +208,9 @@ public class DeleteObject {
         try {
             workflowScriptContext.getStoreElement().setLock(false,false);
         } catch (LockException e) {
-            Logging.logError(EXCEPTION + idProvider + "\n" + e, LOGGER);
+            Logging.logError(EXCEPTION + idProvider, e, LOGGER);
         } catch (ElementDeletedException e) {
-            Logging.logError(EXCEPTION + idProvider + "\n" + e, LOGGER);
+            Logging.logError(EXCEPTION + idProvider, e, LOGGER);
         }
 
         // delete elements
@@ -236,7 +242,7 @@ public class DeleteObject {
                     }
                 }
             } catch (Exception e) {
-                Logging.logError(EXCEPTION + idProvider + "\n" + e, LOGGER);
+                Logging.logError(EXCEPTION + idProvider, e, LOGGER);
             }
         }
         workflowScriptContext.getTask().closeTask();
@@ -283,10 +289,10 @@ public class DeleteObject {
                         }
                     }
                 } catch (Exception e) {
-                    Logging.logError("Exception during Release of " + idProv + "\n" + e, LOGGER);
+                    Logging.logError("Exception during Release of " + idProv, e, LOGGER);
                 }
             }
-            // release new startnode (if modidified through delete action)
+            // release new startnode (if modified through delete action)
             if(idProv instanceof PageRefFolder) {
                 StartNode startNode = ((PageRefFolder) idProv).getStartNode();
                 if(startNode != null && startNode.getReleaseStatus() != IDProvider.RELEASED) {
@@ -331,8 +337,11 @@ public class DeleteObject {
             } else {
                 // JC
                 deleteObjects.add(idProvider);
-                // release parent folder
-                releaseObjects.add(idProvider.getParent());
+
+	            if (idProvider.getStore().getType() != Store.Type.TEMPLATESTORE) {
+		            // release parent folder
+		            releaseObjects.add(idProvider.getParent());
+	            }
             }
         deleteElements.put(DEL_OBJECTS, deleteObjects);
         deleteElements.put(REL_OBJECTS, releaseObjects);
