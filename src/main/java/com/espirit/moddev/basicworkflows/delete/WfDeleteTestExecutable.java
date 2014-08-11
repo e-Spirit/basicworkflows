@@ -87,11 +87,14 @@ public class WfDeleteTestExecutable extends WorkflowExecutable implements Execut
                 workflowScriptContext.doTransition("trigger_test_failed");
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Test Delete failed!", e, LOGGER);
-                // show error message
-                OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-                RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-                requestOperation.setTitle(bundle.getString("errorMsg"));
-                requestOperation.perform(bundle.getString("testDeleteFailed"));
+				final String suppressDialog = (String) workflowScriptContext.getSession().get("wfSuppressDialog"); // set in integration tests
+				if (!"true".equals(suppressDialog)) {
+					// show error message
+					OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+					RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+					requestOperation.setTitle(bundle.getString("errorMsg"));
+					requestOperation.perform(bundle.getString("testDeleteFailed"));
+				}
             }
         }
         return true;

@@ -51,6 +51,10 @@
             <name>Delete WorkFlow Show Warning Executable</name>
             <class>com.espirit.moddev.basicworkflows.delete.WfShowWarningExecutable</class>
         </public>
+		<public>
+			<name>Delete WorkFlow Branch If Folder Executable</name>
+			<class>com.espirit.moddev.basicworkflows.delete.WfBranchIfFolderExecutable</class>
+		</public>
 
         <public>
             <name>WorkFlow Find Related Objects Executable</name>

@@ -66,12 +66,18 @@ public class WfCheckPrerequisitesExecutableTest {
 		OperationAgent operationAgent = mock(OperationAgent.class);
 		when(operationAgent.getOperation(RequestOperation.TYPE)).thenReturn(requestOperation);
 
+		IDProvider idProvider = mock(IDProvider.class);
+		when(idProvider.getUidType()).thenReturn(IDProvider.UidType.TEMPLATESTORE);
+		when(idProvider.getUid()).thenReturn(new String());
+
+		Workflow workflow = mock(Workflow.class);
+
 		workflowScriptContext = mock(WorkflowScriptContext.class);
 		when(workflowScriptContext.requireSpecialist(UIAgent.TYPE)).thenReturn(uiAgent);
 		when(workflowScriptContext.getProject()).thenReturn(project);
 		when(workflowScriptContext.getTask()).thenReturn(task);
-
 		when(workflowScriptContext.requireSpecialist(OperationAgent.TYPE)).thenReturn(operationAgent);
+		when(workflowScriptContext.getTask().getWorkflow()).thenReturn(workflow);
 	}
 
 	@Test

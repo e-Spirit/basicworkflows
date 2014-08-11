@@ -112,7 +112,7 @@ public class ReleaseObject {
         boolean result = true;
         HashSet<Long> lockedList = new HashSet<Long>();
         HashSet<Long> permList = new HashSet<Long>();
-        
+
         // release entity
         if(this.entity != null) {
             final ContentWorkflowable contentWorkflowable = (ContentWorkflowable) workflowScriptContext.getWorkflowable();
@@ -231,68 +231,71 @@ public class ReleaseObject {
             }
         }
 
-        // show locked elements if any
-        if(!lockedList.isEmpty()) {
-            Logging.logInfo("LockFailedElements:", LOGGER);
-            StringBuilder errorMsg = new StringBuilder(bundle.getString("errorLocked")).append(":\n\n");
+		final String suppressDialog = (String) workflowScriptContext.getSession().get("wfSuppressDialog"); // set in integration tests
+		if (!"true".equals(suppressDialog)) {
+			// show locked elements if any
+			if(!lockedList.isEmpty()) {
+				Logging.logInfo("LockFailedElements:", LOGGER);
+				StringBuilder errorMsg = new StringBuilder(bundle.getString("errorLocked")).append(":\n\n");
 
-            for (Object locked : lockedList) {
-                Logging.logInfo("  id:" + locked, LOGGER);
-                errorMsg.append(createErrorString(locked));
-            }
-            try {
-                // get operation agent
-                OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-                // get request operation
-                RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-                // perform request to open dialog
-                requestOperation.setTitle(bundle.getString("errorLocked"));
-                requestOperation.perform(errorMsg.toString());
-            } catch (IllegalStateException e) {
-                Logging.logWarning("Displaying locked elements failed.", e, LOGGER);
-            }
-        }
+				for (Object locked : lockedList) {
+					Logging.logInfo("  id:" + locked, LOGGER);
+					errorMsg.append(createErrorString(locked));
+				}
+				try {
+					// get operation agent
+					OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+					// get request operation
+					RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+					// perform request to open dialog
+					requestOperation.setTitle(bundle.getString("errorLocked"));
+					requestOperation.perform(errorMsg.toString());
+				} catch (IllegalStateException e) {
+					Logging.logWarning("Displaying locked elements failed.", e, LOGGER);
+				}
+			}
 
-        // show elements without permission if any
-        if(!permList.isEmpty()) {
-            StringBuilder errorMsg = new StringBuilder(bundle.getString("errorPermission")).append(":\n\n");
-            Logging.logInfo("MissingPermissionElement", LOGGER);
-            for (Long missing : permList) {
-                Logging.logInfo("  id:" + missing, LOGGER);
-                errorMsg.append(createErrorString(missing));
-            }
-            try {
-                // get operation agent
-                OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-                // get request operation
-                RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-                // perform request to open dialog
-                requestOperation.setTitle(bundle.getString("errorPermission"));
-                requestOperation.perform(errorMsg.toString());
-            } catch (IllegalStateException e) {
-                Logging.logWarning("Displaying elements without permission failed.", e, LOGGER);
-            }
-        }
+			// show elements without permission if any
+			if(!permList.isEmpty()) {
+				StringBuilder errorMsg = new StringBuilder(bundle.getString("errorPermission")).append(":\n\n");
+				Logging.logInfo("MissingPermissionElement", LOGGER);
+				for (Long missing : permList) {
+					Logging.logInfo("  id:" + missing, LOGGER);
+					errorMsg.append(createErrorString(missing));
+				}
+				try {
+					// get operation agent
+					OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+					// get request operation
+					RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+					// perform request to open dialog
+					requestOperation.setTitle(bundle.getString("errorPermission"));
+					requestOperation.perform(errorMsg.toString());
+				} catch (IllegalStateException e) {
+					Logging.logWarning("Displaying elements without permission failed.", e, LOGGER);
+				}
+			}
 
-        // show invalid elements if any
-        if(!validationErrorList.isEmpty()) {
-            // show dialog
-            try {
-                // get operation agent
-                OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-                // get request operation
-                RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-                // perform request to open dialog
-                requestOperation.setTitle(bundle.getString("errorValidation"));
-                StringBuilder errorMsg = new StringBuilder();
-                for(String validationError : validationErrorList) {
-                    errorMsg.append(validationError);
-                }
-                requestOperation.perform(errorMsg.toString());
-            } catch (IllegalStateException e) {
-                Logging.logWarning("Displaying unreleased elements failed.", e, LOGGER);
-            }
-        }
+			// show invalid elements if any
+			if(!validationErrorList.isEmpty()) {
+				// show dialog
+				try {
+					// get operation agent
+					OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+					// get request operation
+					RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+					// perform request to open dialog
+					requestOperation.setTitle(bundle.getString("errorValidation"));
+					StringBuilder errorMsg = new StringBuilder();
+					for(String validationError : validationErrorList) {
+						errorMsg.append(validationError);
+					}
+					requestOperation.perform(errorMsg.toString());
+				} catch (IllegalStateException e) {
+					Logging.logWarning("Displaying unreleased elements failed.", e, LOGGER);
+				}
+			}
+		}
         return result;
     }
 
@@ -341,6 +344,6 @@ public class ReleaseObject {
         } else {
             return "";
         }
-	       
+
     }
 }
