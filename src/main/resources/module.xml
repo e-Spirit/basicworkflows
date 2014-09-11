@@ -21,6 +21,7 @@
 
 <module>
     <name>${project.artifactId}</name>
+    <displayname>${project.displayName}</displayname>
     <version>${project.version}</version>
     <description>${project.artifactId}</description>
     <vendor>com.espirit.moddev</vendor>
@@ -78,12 +79,12 @@
         </public>
 
         <public>
-            <name>Basic Workflow Status</name>
+            <name>${project.displayName} Status Provider</name>
             <class>com.espirit.moddev.basicworkflows.util.BasicWorkflowStatusProvider</class>
         </public>
         <!-- Web application that provides all module classes and support files to the WebClient run-time. -->
         <web-app>
-            <name>Basic Workflow WebClient Library</name>
+            <name>${project.displayName} ContentCreator Library</name>
             <web-xml>web/web.xml</web-xml>
             <web-resources>
                 <resource>lib/${project.artifactId}-${project.version}-jar-with-dependencies.jar</resource>

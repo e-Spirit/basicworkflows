@@ -42,6 +42,7 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
 
     /** the context to use. */
     private BaseContext context;
+    public static final Class<?> LOGGER = BasicWorkflowStatusProvider.class;
 
     /** {@inheritDoc} */
     public State getReleaseState (final IDProvider element) {
@@ -56,9 +57,9 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
             releaseStatus.put(State.IN_WORKFLOW, true);
         }
 
-        // check status of page as well if element is a pageref
+        // check status of page and pagereffolder as well if element is a pageref
         if(element instanceof PageRef) {
-            if(((PageRef) element).getPage().getReleaseStatus() != IDProvider.RELEASED) {
+            if(((PageRef) element).getPage().getReleaseStatus() != IDProvider.RELEASED || element.getParent().getReleaseStatus() != IDProvider.RELEASED) {
                 releaseStatus.put(State.CHANGED, true);
             } else if(((PageRef) element).getPage().hasTask()) {
                 releaseStatus.put(State.IN_WORKFLOW, true);

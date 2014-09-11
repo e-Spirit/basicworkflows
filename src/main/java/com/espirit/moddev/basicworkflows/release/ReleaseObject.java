@@ -44,6 +44,7 @@ import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
+import de.espirit.firstspirit.access.store.sitestore.SiteStoreRoot;
 import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.OperationAgent;
@@ -133,9 +134,9 @@ public class ReleaseObject {
                         }
 
 
-                        // release only referenced media and workflow object
+                        // release only referenced media, workflow object and unreleased parent pagereffolders
 
-                        if(idProvider == workflowScriptContext.getStoreElement() || (workflowScriptContext.getStoreElement() instanceof PageRef && idProvider == ((PageRef) workflowScriptContext.getStoreElement()).getPage()) || idProvider instanceof Media) {
+                        if(idProvider == workflowScriptContext.getStoreElement() || (workflowScriptContext.getStoreElement() instanceof PageRef && idProvider == ((PageRef) workflowScriptContext.getStoreElement()).getPage()) || idProvider instanceof Media || idProvider instanceof PageRefFolder || idProvider instanceof SiteStoreRoot) {
                             Logging.logInfo("Prepare release for: " + idProvider.getId(), LOGGER);
 
                             // only release items that are not yet released
@@ -181,7 +182,10 @@ public class ReleaseObject {
                                         handle = AccessUtil.release(idProvider, checkOnly, false, false, IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
                                     } else if (idProvider instanceof ProjectProperties) {
                                         handle = AccessUtil.release(idProvider, checkOnly, false, false, IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
+                                    } else if (idProvider instanceof SiteStoreRoot) {
+                                        handle = AccessUtil.release(idProvider, checkOnly, false, false, IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
                                     }
+
                                     if (handle != null) {
                                         try {
                                             handle.checkAndThrow();

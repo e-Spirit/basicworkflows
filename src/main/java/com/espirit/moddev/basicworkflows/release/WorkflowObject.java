@@ -25,6 +25,7 @@ import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.ReferenceResult;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import de.espirit.common.base.Logging;
+import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.StoreElement;
@@ -336,6 +337,7 @@ public class WorkflowObject {
         // add outgoing references of parent objects if element was never released before
         if(((IDProvider) storeElem).getReleaseStatus() == IDProvider.NEVER_RELEASED) {
             while(storeElem.getParent() != null) {
+                storeElem = storeElem.getParent();
                 for(ReferenceEntry referenceEntry : storeElem.getOutgoingReferences()) {
                     if(!releaseWithMedia) {
                         if(!referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
@@ -345,9 +347,29 @@ public class WorkflowObject {
                         references.add(referenceEntry);
                     }
                 }
-                storeElem = storeElem.getParent();
             }
         }
+
+        // add parent folders in case of a moved folder (only used in webedit workflow)
+        if(workflowScriptContext.is(BaseContext.Env.WEBEDIT) && ((IDProvider) storeElem).getReleaseStatus() == IDProvider.RELEASED) {
+            while(storeElem.getParent() != null) {
+                storeElem = storeElem.getParent();
+                if(((IDProvider) storeElem).getReleaseStatus() == IDProvider.CHANGED) {
+                    references.add(storeElem);
+                }
+            }
+        }
+
+        // add parent folder if that has changed (only used in webedit workflow)
+        if(workflowScriptContext.is(BaseContext.Env.WEBEDIT) && ((IDProvider) storeElem).getReleaseStatus() == IDProvider.CHANGED) {
+            if(storeElem.getParent() != null) {
+                storeElem = storeElem.getParent();
+                if(((IDProvider) storeElem).getReleaseStatus() == IDProvider.CHANGED) {
+                    references.add(storeElem);
+                }
+            }
+        }
+
 
         return references;
     }
