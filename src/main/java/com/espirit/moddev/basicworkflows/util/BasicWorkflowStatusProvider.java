@@ -20,37 +20,47 @@
 
 package com.espirit.moddev.basicworkflows.util;
 
+import de.espirit.common.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.StoreElement;
 import de.espirit.firstspirit.access.store.contentstore.Dataset;
+import de.espirit.firstspirit.access.store.pagestore.Page;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.workflow.WebeditElementStatusProviderPlugin;
 import de.espirit.firstspirit.workflow.WorkflowGroup;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
 
 /**
- * WorkflowStatusProvider that is used for the basic workflows.
- * Distinguishes between PageReference, DocumentGroup and Dataset.
+ * WorkflowStatusProvider that is used for the basic workflows. Distinguishes between Page, PageReference, DocumentGroup and Dataset.
  *
  * @author stephan
  * @since 1.0
  */
 public class BasicWorkflowStatusProvider implements WebeditElementStatusProviderPlugin {
 
-    /** the context to use. */
+    /**
+     * the context to use.
+     */
     private BaseContext context;
     public static final Class<?> LOGGER = BasicWorkflowStatusProvider.class;
 
-    /** {@inheritDoc} */
-    public State getReleaseState (final IDProvider element) {
-        State releaseState = State.RELEASED;
-        HashMap<State, Boolean> releaseStatus = new HashMap<State, Boolean>();
+    /**
+     * {@inheritDoc}
+     */
+    public State getReleaseState(final IDProvider element) {
+        State releaseStateResult = State.RELEASED;
+        Map<State, Boolean> releaseStatus = new HashMap<State, Boolean>();
 
         // check workflow element status
-        if (element.isReleaseSupported() && element.getReleaseStatus() != IDProvider.RELEASED) {
+        if (isNotReleased(element)) {
             releaseStatus.put(State.CHANGED, true);
         }
         if (element.hasTask()) {
@@ -58,41 +68,56 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         }
 
         // check status of page and pagereffolder as well if element is a pageref
-        if(element instanceof PageRef) {
-            if(((PageRef) element).getPage().getReleaseStatus() != IDProvider.RELEASED || element.getParent().getReleaseStatus() != IDProvider.RELEASED) {
+        if (element instanceof PageRef) {
+            PageRef pageRef = (PageRef) element;
+            if (isNotReleased(pageRef.getPage()) || isNotReleased(element.getParent())) {
                 releaseStatus.put(State.CHANGED, true);
-            } else if(((PageRef) element).getPage().hasTask()) {
+            }
+            if (pageRef.getPage().hasTask() || element.getParent().hasTask()) {
                 releaseStatus.put(State.IN_WORKFLOW, true);
             }
-        // check status of pagerefs and pages as well if element is a documentgroup
-        } else if(element instanceof DocumentGroup) {
+            // check status of pagerefs and pages as well if element is a documentgroup
+        } else if (element instanceof DocumentGroup) {
             DocumentGroup documentGroup = (DocumentGroup) element;
-            for(StoreElement storeElement : documentGroup.getChildren()) {
-                if(storeElement instanceof PageRef) {
-                    if(((PageRef) storeElement).getReleaseStatus() != IDProvider.RELEASED || ((PageRef) storeElement).getPage().getReleaseStatus() != IDProvider.RELEASED) {
+            for (StoreElement storeElement : documentGroup.getChildren()) {
+                if (storeElement instanceof PageRef) {
+                    PageRef pageRef = (PageRef) storeElement;
+                    if (isNotReleased(pageRef) || isNotReleased(pageRef.getPage())) {
                         releaseStatus.put(State.CHANGED, true);
-                    } else if(storeElement.hasTask() || ((PageRef) storeElement).getPage().hasTask()) {
+                    }
+                    if (pageRef.hasTask() || pageRef.getPage().hasTask()) {
                         releaseStatus.put(State.IN_WORKFLOW, true);
                     }
                 }
             }
         }
         // override status if element is a pageref or a documentgroup
-        if(releaseStatus.get(State.IN_WORKFLOW) != null && releaseStatus.get(State.IN_WORKFLOW)) {
-            releaseState = State.IN_WORKFLOW;
-        } else if(releaseStatus.get(State.CHANGED) != null && releaseStatus.get(State.CHANGED)) {
-            releaseState = State.CHANGED;
+        if (hasState(releaseStatus, State.IN_WORKFLOW)) {
+            releaseStateResult = State.IN_WORKFLOW;
+        } else if (hasState(releaseStatus, State.CHANGED)) {
+            releaseStateResult = State.CHANGED;
         }
-        return releaseState;
+
+        return releaseStateResult;
     }
 
-    /** {@inheritDoc} */
-    public List<WorkflowGroup> getWorkflowGroups (final IDProvider element) {
+    private boolean hasState(final Map<State, Boolean> releaseStatus, final State state) {
+        return releaseStatus.get(state) != null && releaseStatus.get(state);
+    }
+
+    private boolean isNotReleased(final IDProvider element) {
+        return element.isReleaseSupported() && element.getReleaseStatus() != IDProvider.RELEASED;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public List<WorkflowGroup> getWorkflowGroups(final IDProvider element) {
         final List<WorkflowGroup> collectedWorkflowGroups = new ArrayList<WorkflowGroup>();
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
 
-        if (element instanceof PageRef) {
+        if (element instanceof PageRef || element instanceof Page) {
             final WorkflowGroup pageRefGroup = Factory.create(bundle.getString("pageReference"), Collections.singletonList(element));
             collectedWorkflowGroups.add(pageRefGroup);
         } else if (element instanceof DocumentGroup) {
@@ -103,17 +128,26 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
             dataSets.add(element);
             final WorkflowGroup workflowDataset = Factory.create(bundle.getString("dataset"), dataSets);
             collectedWorkflowGroups.add(workflowDataset);
+        } else {
+            if (element != null) {
+                String message = "No workflow group object created for element '%s'";
+                Logging.logWarning(String.format(message, element.getClass().getName()), LOGGER);
+            }
         }
         return collectedWorkflowGroups;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setUp(BaseContext baseContext) {
         this.context = baseContext;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void tearDown() {
     }
