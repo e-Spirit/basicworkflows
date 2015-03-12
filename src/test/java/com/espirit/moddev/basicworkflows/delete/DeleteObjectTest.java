@@ -38,7 +38,7 @@ public class DeleteObjectTest {
 
 		workflowScriptContext = mock(WorkflowScriptContext.class);
 		when(workflowScriptContext.getWorkflowable()).thenReturn(null);
-		when(workflowScriptContext.getStoreElement()).thenReturn(elementToBeDeleted);
+		when(workflowScriptContext.getElement()).thenReturn(elementToBeDeleted);
 		when(workflowScriptContext.getTask()).thenReturn(task);
 	}
 

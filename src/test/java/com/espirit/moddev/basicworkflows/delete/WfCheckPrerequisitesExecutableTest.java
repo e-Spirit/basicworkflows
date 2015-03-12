@@ -82,7 +82,7 @@ public class WfCheckPrerequisitesExecutableTest {
 
 	@Test
 	public void testDeleteTemplateFolderWithChildTemplate() throws IllegalAccessException {
-		setMockStoreElement(templateFolder);
+		setMockIdProvider(templateFolder);
 		Template childTemplate = mock(Template.class);
 		testDeleteTemplateFolderWithChild(childTemplate);
 		verify(requestOperation).perform(resourceBundle.getString("hasChildren"));
@@ -91,15 +91,15 @@ public class WfCheckPrerequisitesExecutableTest {
 
 	@Test
 	public void testDeleteTemplateFolderWithChildTemplateFolder() throws IllegalAccessException {
-		setMockStoreElement(templateFolder);
+		setMockIdProvider(templateFolder);
 		TemplateFolder childTemplateFolder = mock(TemplateFolder.class);
 		testDeleteTemplateFolderWithChild(childTemplateFolder);
 		verify(requestOperation).perform(resourceBundle.getString("hasChildren"));
 		verify(workflowScriptContext).doTransition("trigger_folder_ok");
 	}
 
-	private void setMockStoreElement(StoreElement mockStoreElement) {
-		when(workflowScriptContext.getStoreElement()).thenReturn(mockStoreElement);
+	private void setMockIdProvider(IDProvider mockStoreElement) {
+		when(workflowScriptContext.getElement()).thenReturn(mockStoreElement);
 	}
 
 	private void testDeleteTemplateFolderWithChild(final StoreElement templateFolderChild) throws IllegalAccessException {
