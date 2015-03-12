@@ -291,6 +291,10 @@ public class FakeDocumentGroup implements DocumentGroup {
     }
 
     @Override
+    public void setDisplayName(Language language, String s) {
+    }
+
+    @Override
     public boolean isReleaseSupported() {
         return false;
     }

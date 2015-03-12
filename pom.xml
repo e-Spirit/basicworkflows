@@ -19,14 +19,27 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>beat-artifactory243</id>
+            <name>beat-artifactory243-releases</name>
+            <url>http://beat-artifactory.de.bosch.com/artifactory/wcms-release-local
+            </url>
+        </repository>
+    </repositories>
+
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>1.7</source>
+					<target>1.7</target>
+                    <compilerArgument>-Xlint:all</compilerArgument>
+                    <showWarnings>true</showWarnings>
+                    <showDeprecation>true</showDeprecation>
 				</configuration>
 			</plugin>
 
@@ -127,7 +140,7 @@
         </dependency>
         <dependency>
             <groupId>de.espirit.firstspirit</groupId>
-            <artifactId>client</artifactId>
+            <artifactId>fs-client</artifactId>
             <version>${firstspirit.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -194,7 +207,7 @@
                       <plugin>
                           <groupId>org.codehaus.mojo</groupId>
                           <artifactId>license-maven-plugin</artifactId>
-                          <version>1.3</version>
+                          <version>1.8</version>
                           <configuration>
                             <verbose>true</verbose>
                             <addSvnKeyWords>false</addSvnKeyWords>
@@ -233,7 +246,7 @@
                   <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>1.2</version>
+                    <version>1.8</version>
                     <configuration>
                         <failIfWarning>true</failIfWarning>
                         <useMissingFile>true</useMissingFile>

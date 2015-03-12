@@ -333,6 +333,11 @@ public class FakePage implements Page {
     }
 
     @Override
+    public void setDisplayName(Language language, String s) {
+
+    }
+
+    @Override
     public boolean isReleaseSupported() {
         return false;
     }

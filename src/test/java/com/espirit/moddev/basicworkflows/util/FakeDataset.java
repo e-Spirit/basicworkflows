@@ -124,6 +124,10 @@ public class FakeDataset implements Dataset {
     }
 
     @Override
+    public void setDisplayName(Language language, String s) {
+    }
+
+    @Override
     public boolean isReleaseSupported() {
         return false;
     }
