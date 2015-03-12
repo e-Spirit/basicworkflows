@@ -19,15 +19,6 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>beat-artifactory243</id>
-            <name>beat-artifactory243-releases</name>
-            <url>http://beat-artifactory.de.bosch.com/artifactory/wcms-release-local
-            </url>
-        </repository>
-    </repositories>
-
 	<build>
 		<plugins>
 			<plugin>
