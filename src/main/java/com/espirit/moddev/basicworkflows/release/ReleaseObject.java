@@ -136,7 +136,7 @@ public class ReleaseObject {
 
                         // release only referenced media, workflow object and unreleased parent pagereffolders
 
-                        if(idProvider == workflowScriptContext.getStoreElement() || (workflowScriptContext.getStoreElement() instanceof PageRef && idProvider == ((PageRef) workflowScriptContext.getStoreElement()).getPage()) || idProvider instanceof Media || idProvider instanceof PageRefFolder || idProvider instanceof SiteStoreRoot) {
+                        if(idProvider == workflowScriptContext.getElement() || (workflowScriptContext.getElement() instanceof PageRef && idProvider == ((PageRef) workflowScriptContext.getElement()).getPage()) || idProvider instanceof Media || idProvider instanceof PageRefFolder || idProvider instanceof SiteStoreRoot) {
                             Logging.logInfo("Prepare release for: " + idProvider.getId(), LOGGER);
 
                             // only release items that are not yet released
@@ -148,7 +148,7 @@ public class ReleaseObject {
                                 }
                                 // check rules for sections of pages (as checkrules is not recursive)
                                 if(idProvider instanceof Page) {
-                                    for(Section section : idProvider.getChildren(Section.class, true)) {
+                                    for(Section<?> section : idProvider.getChildren(Section.class, true)) {
                                         String validationErrorsSection = new FormValidator(workflowScriptContext).isValid(section);
                                         if(validationErrorsSection != null) {
                                             validationErrorList.add(validationErrorsSection);
@@ -157,7 +157,7 @@ public class ReleaseObject {
                                 }
                                 if(validationErrorList.isEmpty()) {
                                     // check release
-                                    if(idProvider == workflowScriptContext.getStoreElement()) {
+                                    if(idProvider == workflowScriptContext.getElement()) {
                                         // unlock element that runs the workflow
                                         idProvider.setLock(false,false);
                                     }
@@ -218,7 +218,7 @@ public class ReleaseObject {
                                             result = false;
                                         }
                                     }
-                                    if(idProvider == workflowScriptContext.getStoreElement()) {
+                                    if(idProvider == workflowScriptContext.getElement()) {
                                         idProvider.setLock(true,false);
                                     }
                                 } else {

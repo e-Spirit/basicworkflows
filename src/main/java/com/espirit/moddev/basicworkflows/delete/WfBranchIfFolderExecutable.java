@@ -36,7 +36,7 @@ public class WfBranchIfFolderExecutable extends WorkflowExecutable implements Ex
 
 	public Object execute(Map<String, Object> params) {
 		WorkflowScriptContext context = (WorkflowScriptContext) params.get("context");
-		StoreElement element = context.getStoreElement();
+		StoreElement element = context.getElement();
 		String transition = null;
 
 		if (element instanceof StoreElementFolder && !(element instanceof Content2)) {

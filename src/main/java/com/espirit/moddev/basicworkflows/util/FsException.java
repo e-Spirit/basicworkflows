@@ -28,20 +28,5 @@ package com.espirit.moddev.basicworkflows.util;
  */
 public class FsException extends RuntimeException {
 
-  /**
-   * Throws an exception.
-   */
-  public FsException()
-  {
-    super();
-  }
-
-  /**
-   * Throws an exception.
-   * @param message The exception message
-   */
-  public FsException(String message)
-  {
-    super(message);
-  }
+    private static final long serialVersionUID = -1010220755632543938L;
 }

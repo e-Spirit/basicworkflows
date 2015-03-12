@@ -75,7 +75,7 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable implement
 
         //show warning dialog if prerequisites are not met and wfFolderCheckFail is not set
         if(getCustomAttribute(workflowScriptContext, "wfCheckPrerequisitesFail") == null) {
-            StoreElement storeElement = workflowScriptContext.getStoreElement();
+            StoreElement storeElement = workflowScriptContext.getElement();
             String message = "";
 
 			// workflow handling

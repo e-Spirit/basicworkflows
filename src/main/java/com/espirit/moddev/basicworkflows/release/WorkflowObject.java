@@ -28,6 +28,7 @@ import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.IDProvider.UidType;
 import de.espirit.firstspirit.access.store.StoreElement;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
@@ -171,11 +172,11 @@ public class WorkflowObject {
      * @param releaseWithMedia Determines if media references should also be checked
      * @return a list of elements that reference the workflow object.
      */
-    public List<Object> getRefObjectsFromSection(StoreElement page, boolean releaseWithMedia) {
-            ArrayList<Object>referencedObjects = new ArrayList<Object>();
+    public List<ReferenceEntry> getRefObjectsFromSection(StoreElement page, boolean releaseWithMedia) {
+            List<ReferenceEntry> referencedObjects = new ArrayList<>();
 
             // add outgoing references of page sections
-            for (Section section : page.getChildren(Section.class, true)) {
+            for (Section<?> section : page.getChildren(Section.class, true)) {
 /** documentation example - begin **/
                 if (!(section instanceof Content2Section)) {
 /** documentation example - end **/
@@ -200,8 +201,8 @@ public class WorkflowObject {
      * @param includeMedia Determines if media references should also be checked
      * @return a list of elements that reference the workflow object.
      */
-    public List<Object> getRefObjectsFromEntity(boolean includeMedia) {
-        ArrayList<Object> referencedObjects= new ArrayList<Object>();
+    public List<ReferenceEntry> getRefObjectsFromEntity(boolean includeMedia) {
+        List<ReferenceEntry> referencedObjects= new ArrayList<>();
 
         for(ReferenceEntry referenceEntry : content2.getSchema().getOutgoingReferences(entity)) {
             if(!includeMedia) {
@@ -225,7 +226,7 @@ public class WorkflowObject {
     @SuppressWarnings("unchecked")
     public boolean checkReferences(List<Object> releaseObjects, boolean releaseWithMedia) {
         boolean result = false;
-        HashMap<String, IDProvider.UidType> notReleasedElements = new HashMap<String, IDProvider.UidType>();
+        HashMap<String, UidType> notReleasedElements = new HashMap<>();
         // object to store if elements can be released
         ReferenceResult referenceResult = new ReferenceResult();
 
@@ -245,7 +246,7 @@ public class WorkflowObject {
                     Logging.logWarning("No media and not released:" + ent.getIdentifier() + "#" + ent.get("fs_id"), LOGGER);
                     referenceResult.setNotMediaReleased(false);
                     referenceResult.setAllObjectsReleased(false);
-                    notReleasedElements.put(ent.getIdentifier().getEntityTypeName() + " (" + ent.getIdentifier().getEntityTypeName() + ", ID#" + ent.get("fs_id") + ")", IDProvider.UidType.CONTENTSTORE_DATA);
+                    notReleasedElements.put(ent.getIdentifier().getEntityTypeName() + " (" + ent.getIdentifier().getEntityTypeName() + ", ID#" + ent.get("fs_id") + ")", UidType.CONTENTSTORE_DATA);
                 }
             } else {
                 IDProvider idProvider;
