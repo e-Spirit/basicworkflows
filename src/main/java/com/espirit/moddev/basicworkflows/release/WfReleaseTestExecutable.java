@@ -71,11 +71,12 @@ public class WfReleaseTestExecutable extends WorkflowExecutable implements Execu
             } else {
                 // add dependend objects
                 releaseObjects.addAll(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia));
+                releaseObjects.addAll(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia));
                 // add the object
-                releaseObjects.add(workflowScriptContext.getStoreElement());
-                if(workflowScriptContext.getStoreElement() instanceof PageRef && (((PageRef) workflowScriptContext.getStoreElement()).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
+                releaseObjects.add(workflowScriptContext.getElement());
+                if(workflowScriptContext.getElement() instanceof PageRef && (((PageRef) workflowScriptContext.getElement()).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
                     // if object is pageref, add page to release list if unreleased
-                    releaseObjects.add(((PageRef) workflowScriptContext.getStoreElement()).getPage());
+                    releaseObjects.add(((PageRef) workflowScriptContext.getElement()).getPage());
                 }
                 // do test release
                 releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(true);

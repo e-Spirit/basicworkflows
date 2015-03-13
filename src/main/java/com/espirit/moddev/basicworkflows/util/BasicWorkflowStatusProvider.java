@@ -101,10 +101,23 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         return releaseStateResult;
     }
 
-    private boolean hasState(final Map<State, Boolean> releaseStatus, final State state) {
-        return releaseStatus.get(state) != null && releaseStatus.get(state);
+    /**
+     * Checks if a given state if contained in the given State map.
+     *
+     * @param states the State Map
+     * @param state the State to look for in the Map
+     * @return true if the State is contained in the State Map
+     */
+    private boolean hasState(final Map<State, Boolean> states, final State state) {
+        return states.get(state) != null && states.get(state);
     }
 
+    /**
+     * Checks if the given element is currently released.
+     *
+     * @param element the element
+     * @return true if the element is released
+     */
     private boolean isNotReleased(final IDProvider element) {
         return element.isReleaseSupported() && element.getReleaseStatus() != IDProvider.RELEASED;
     }

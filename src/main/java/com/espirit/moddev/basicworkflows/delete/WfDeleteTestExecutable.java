@@ -30,6 +30,7 @@ import de.espirit.firstspirit.agency.OperationAgent;
 import de.espirit.firstspirit.ui.operations.RequestOperation;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -74,12 +75,12 @@ public class WfDeleteTestExecutable extends WorkflowExecutable implements Execut
                 // check test case or skip if wfDoTestFail is set
                 if(getCustomAttribute(workflowScriptContext, TESTFAIL) == null || getCustomAttribute(workflowScriptContext, TESTFAIL).equals("false")) {
                     @SuppressWarnings("unchecked")
-                    ArrayList<ArrayList> lockedObjects = (ArrayList<ArrayList>) workflowScriptContext.getSession().get("wfLockedObjects");
+                    List<List> lockedObjects = (List<List>) workflowScriptContext.getSession().get("wfLockedObjects");
                     StringBuilder notReleased = new StringBuilder(bundle.getString("objectsLocked")).append(":\n\n");
-                    for(ArrayList lockedObject : lockedObjects) {
+                    for(List lockedObject : lockedObjects) {
                         String elementType = (String) lockedObject.get(0);
                         String uid = (String) lockedObject.get(1);
-                        notReleased.append(uid).append(" (").append(elementType).append((")\n"));
+                        notReleased.append(uid).append(" (").append(elementType).append(")\n");
                     }
                     // show dialog
                     showDialog(workflowScriptContext, bundle.getString(bundle.getString("objectsLocked")+":\n\n"), notReleased.toString());

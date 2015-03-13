@@ -138,7 +138,7 @@ public class BasicWorkflowStatusProviderTest {
     }
 
     @DataPoints
-    public static IDProvider[] elements = {new FakePage(), new FakePageRef(), new FakeDataset(), new FakeDocumentGroup()};
+    public static IDProvider[] elements = {mock(Page.class), mock(PageRef.class), mock(Dataset.class), mock(DocumentGroup.class)};
 
     @Theory(nullsAccepted = false)
     public void testGetWorkflowGroupsNotNull(IDProvider element) {
@@ -169,7 +169,7 @@ public class BasicWorkflowStatusProviderTest {
 
     @Test
     public void testGetWorkflowGroupsEmptyList() {
-        List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(new FakeIDProvider());
+        List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(mock(IDProvider.class));
         assertThat(workflowGroupList, hasSize(0));
     }
 

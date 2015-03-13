@@ -123,7 +123,7 @@ public class WorkflowObject {
                 referencedObjects.remove(storeElement);
 
 /** documentation example - begin **/
-                for (Section section : ((PageRef) storeElement).getPage().getChildren(Section.class, true)) {
+                for (Section<?> section : ((PageRef) storeElement).getPage().getChildren(Section.class, true)) {
                     referencedObjects.addAll(getReferences(section));
                 }
 /** documentation example - end **/
@@ -144,7 +144,7 @@ public class WorkflowObject {
             referencedObjects.addAll(getReferences(storeElement));
 
 /** documentation example - begin **/
-            for (Section section : storeElement.getChildren(Section.class, true)) {
+            for (Section<?> section : storeElement.getChildren(Section.class, true)) {
                 referencedObjects.addAll(getReferences(section));
             }
 /** documentation example - end **/
@@ -163,7 +163,9 @@ public class WorkflowObject {
 
 	        if (storeElement instanceof Schema && referencedObjects.isEmpty()) {
 		        TypedFilter<StoreElement> filter = new TypedFilter<StoreElement>(StoreElement.class) {
-			        @Override
+                    private static final long serialVersionUID = 6357324775263530877L;
+
+                    @Override
 			        public boolean accept(final StoreElement storeElement) {
 				        return storeElement instanceof TableTemplate || storeElement instanceof Query;
 			        }
@@ -201,7 +203,7 @@ public class WorkflowObject {
      * @return the list of references.
      */
     private static List<IDProvider> getReferences(StoreElement storeElement) {
-        ArrayList<IDProvider> references = new ArrayList<IDProvider>();
+        List<IDProvider> references = new ArrayList<IDProvider>();
 
         // add outgoing references
         for(ReferenceEntry referenceEntry : storeElement.getIncomingReferences()) {
@@ -218,10 +220,10 @@ public class WorkflowObject {
      * @param refObjects The list of references to store in the session.
      */
     public void storeReferences(List<Object> refObjects) {
-        ArrayList<String> referencedObjects = new ArrayList<String>();
+        ArrayList<String> referencedObjects = new ArrayList<>();
         for(Object obj : refObjects) {
             if(obj  instanceof Section) {
-                Section section = (Section) obj ;
+                Section<?> section = (Section) obj;
                 referencedObjects.add(section.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + section.getName() + ", " + section.getId() + ")");
             } else if (obj instanceof Entity) {
                 Entity ent = (Entity) obj;

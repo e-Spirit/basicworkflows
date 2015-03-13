@@ -30,26 +30,65 @@ import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.Map;
 
+import static de.espirit.common.base.Logging.logDebug;
+import static de.espirit.common.base.Logging.logError;
+import static de.espirit.common.base.Logging.logInfo;
+
+/**
+ * This class detects if the workflow was executed on a folder or a Page/PageRef/Media/etc. and then decides which transition to select for the next workflow step.
+ * <p/>
+ * Folder   -&gt; workflow transition "{@value #TRANSITION_FOLDER}" is selected<br/>
+ * Other    -&gt; workflow transition "{@value #TRANSITION_ELEMENT}" is selected<br/>
+ */
 public class WfBranchIfFolderExecutable extends WorkflowExecutable implements Executable {
 
-	public static final Class<?> LOGGER = WfBranchIfFolderExecutable.class;
+    public static final Class<?> LOGGER = WfBranchIfFolderExecutable.class;
 
-	public Object execute(Map<String, Object> params) {
-		WorkflowScriptContext context = (WorkflowScriptContext) params.get("context");
-		StoreElement element = context.getStoreElement();
-		String transition = null;
+    /**
+     * This transition is used for folders.
+     */
+    public static final String TRANSITION_FOLDER = "folder";
 
-		if (element instanceof StoreElementFolder && !(element instanceof Content2)) {
-			transition = "folder";
-		} else if (element instanceof StoreElement) {
-			transition = "element";
-		}
+    /**
+     * This transition is used for other elements (Page, PageRef, Media, etc.)
+     */
+    public static final String TRANSITION_ELEMENT = "element";
 
-		try {
-			context.doTransition(transition);
-		} catch (IllegalAccessException e) {
-			Logging.logError("Element type check failed!", e, LOGGER);
-		}
-		return true;
-	}
+    /**
+     * Move the workflow transition based on the element type.
+     *
+     * @param params the Executable params
+     * @return true if execution was successful
+     */
+    public Object execute(Map<String, Object> params) {
+        WorkflowScriptContext context = (WorkflowScriptContext) params.get("context");
+        StoreElement element = context.getElement();
+        String transition = null;
+        logDebug("Checking workflowable type for element " + element, LOGGER);
+
+        if (isFolder(element)) {
+            logDebug("Element is folder", LOGGER);
+            transition = TRANSITION_FOLDER;
+        } else {
+            logDebug("Element is no folder", LOGGER);
+            transition = TRANSITION_ELEMENT;
+        }
+
+        try {
+            context.doTransition(transition);
+        } catch (IllegalAccessException e) {
+            logError("Element type check failed!", e, LOGGER);
+        }
+        return true;
+    }
+
+    /**
+     * Detects if the given StoreElement is a Folder or Content2.
+     *
+     * @param element the workflow element
+     * @return true if the given element is a Folder
+     */
+    private boolean isFolder(StoreElement element) {
+        return element instanceof StoreElementFolder && !(element instanceof Content2);
+    }
 }

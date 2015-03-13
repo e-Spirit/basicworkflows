@@ -70,11 +70,11 @@ public class WfReleaseExecutable extends WorkflowExecutable implements Executabl
             } else {
                 // add dependend objects
                 releaseObjects.addAll(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia));
-                if(workflowScriptContext.getStoreElement() instanceof PageRef && (((PageRef) workflowScriptContext.getStoreElement()).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
-                    releaseObjects.add(((PageRef) workflowScriptContext.getStoreElement()).getPage());
+                if(workflowScriptContext.getElement() instanceof PageRef && (((PageRef) workflowScriptContext.getElement()).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
+                    releaseObjects.add(((PageRef) workflowScriptContext.getElement()).getPage());
                 }
                 // add the object
-                releaseObjects.add(workflowScriptContext.getStoreElement());
+                releaseObjects.add(workflowScriptContext.getElement());
                 // do release
                 releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(false);
             }
@@ -86,7 +86,7 @@ public class WfReleaseExecutable extends WorkflowExecutable implements Executabl
                 if(workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
                     ((ContentWorkflowable) workflowScriptContext.getWorkflowable()).getEntity().refresh();
                 } else {
-                    workflowScriptContext.getStoreElement().refresh();
+                    workflowScriptContext.getElement().refresh();
                 }
                 // do final transition
                 workflowScriptContext.doTransition("trigger_finish");
