@@ -1,3 +1,22 @@
+/*
+ * **********************************************************************
+ * basicworkflows
+ * %%
+ * Copyright (C) 2012 - 2015 e-Spirit AG
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * **********************************************************************
+ */
 package com.espirit.moddev.basicworkflows.util;
 
 import de.espirit.common.util.CollectionListable;
@@ -11,7 +30,7 @@ import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.workflow.WebeditElementStatusProviderPlugin;
 import de.espirit.firstspirit.workflow.WorkflowGroup;
 
-import org.hamcrest.Matchers;import org.junit.Before;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
@@ -24,7 +43,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -138,7 +156,7 @@ public class BasicWorkflowStatusProviderTest {
     }
 
     @DataPoints
-    public static IDProvider[] elements = {new FakePage(), new FakePageRef(), new FakeDataset(), new FakeDocumentGroup()};
+    public static IDProvider[] elements = {mock(Page.class), mock(PageRef.class), mock(Dataset.class), mock(DocumentGroup.class)};
 
     @Theory(nullsAccepted = false)
     public void testGetWorkflowGroupsNotNull(IDProvider element) {
@@ -169,7 +187,7 @@ public class BasicWorkflowStatusProviderTest {
 
     @Test
     public void testGetWorkflowGroupsEmptyList() {
-        List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(new FakeIDProvider());
+        List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(mock(IDProvider.class));
         assertThat(workflowGroupList, hasSize(0));
     }
 

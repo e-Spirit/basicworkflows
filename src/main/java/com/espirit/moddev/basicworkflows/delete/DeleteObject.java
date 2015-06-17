@@ -21,11 +21,19 @@ package com.espirit.moddev.basicworkflows.delete;
 
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.AccessUtil;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ServerActionHandle;
-import de.espirit.firstspirit.access.store.*;
+import de.espirit.firstspirit.access.store.DeleteProgress;
+import de.espirit.firstspirit.access.store.ElementDeletedException;
+import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.LockException;
+import de.espirit.firstspirit.access.store.ReleaseProgress;
+import de.espirit.firstspirit.access.store.Store;
+import de.espirit.firstspirit.access.store.StoreElement;
+import de.espirit.firstspirit.access.store.StoreElementFilter;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.pagestore.Page;
@@ -41,7 +49,13 @@ import de.espirit.firstspirit.ui.operations.RequestOperation;
 import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.Set;
 
 import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
 
@@ -52,29 +66,51 @@ import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
  * @since 1.0
  */
 public class DeleteObject {
-    /** The Entity to be deleted. */
-    private Entity entity;
-    /** The idProvider to be deleted. */
-    private IDProvider idProvider;
-    /** The workflowScriptContext from the workflow. */
-    private WorkflowScriptContext workflowScriptContext;
-    /** The result of the delete operation, defaults to successful. */
-    private boolean result = true;
-    /** The logging class to use. */
-    public static final Class<?> LOGGER = DeleteObject.class;
-    /** Exception message. */
-    public static final String EXCEPTION = "Exception during Delete of ";
-    /** ID message. */
-    public static final String ID = "  id:";
-    /** Name for variable that holds the objects to release. */
-    public static final String REL_OBJECTS = "releaseObjects";
-    /** Name for variable that holds the objects to delete. */
-    public static final String DEL_OBJECTS = "deleteObjects";
-    /** List of objects that should be deleted. */
-    private List<IDProvider> deleteObjects = new ArrayList<IDProvider>();
-    /** List of objects that should be released. */
-    private List<IDProvider> releaseObjects = new ArrayList<IDProvider>();
 
+    /**
+     * The Entity to be deleted.
+     */
+    private Entity entity;
+    /**
+     * The idProvider to be deleted.
+     */
+    private IDProvider idProvider;
+    /**
+     * The workflowScriptContext from the workflow.
+     */
+    private WorkflowScriptContext workflowScriptContext;
+    /**
+     * The result of the delete operation, defaults to successful.
+     */
+    private boolean result = true;
+    /**
+     * The logging class to use.
+     */
+    public static final Class<?> LOGGER = DeleteObject.class;
+    /**
+     * Exception message.
+     */
+    public static final String EXCEPTION = "Exception during Delete of ";
+    /**
+     * ID message.
+     */
+    public static final String ID = "  id:";
+    /**
+     * Name for variable that holds the objects to release.
+     */
+    public static final String REL_OBJECTS = "releaseObjects";
+    /**
+     * Name for variable that holds the objects to delete.
+     */
+    public static final String DEL_OBJECTS = "deleteObjects";
+    /**
+     * List of objects that should be deleted.
+     */
+    private List<IDProvider> deleteObjects = new ArrayList<IDProvider>();
+    /**
+     * List of objects that should be released.
+     */
+    private List<IDProvider> releaseObjects = new ArrayList<IDProvider>();
 
 
     /**
@@ -83,14 +119,14 @@ public class DeleteObject {
      * @param workflowScriptContext The workflowScriptContext from the workflow.
      */
     public DeleteObject(WorkflowScriptContext workflowScriptContext) {
-    	  
+
         this.workflowScriptContext = workflowScriptContext;
         // check if content2 object
-        if(workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+        if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
             ContentWorkflowable contentWorkflowable = (ContentWorkflowable) workflowScriptContext.getWorkflowable();
             entity = contentWorkflowable.getEntity();
         } else {
-            idProvider = (IDProvider) workflowScriptContext.getStoreElement();
+            idProvider = workflowScriptContext.getElement();
         }
     }
 
@@ -105,12 +141,12 @@ public class DeleteObject {
         /* delete entity
            entities cannot be locked, so skip test case
          */
-        if(entity != null && !checkOnly) {
+        if (entity != null && !checkOnly) {
             deleteEntity();
-        } else if(idProvider != null) {
+        } else if (idProvider != null) {
             deleteIDProvider(checkOnly);
         }
-    	return result;
+        return result;
     }
 
 
@@ -127,8 +163,8 @@ public class DeleteObject {
             session.delete(entity);
             session.commit();
         } catch (Exception e) {
-            Logging.logError(EXCEPTION + entity , e, LOGGER);
-           
+            Logging.logError(EXCEPTION + entity, e, LOGGER);
+
         } finally {
             try {
                 // lock/unlock content2 to force a refresh
@@ -147,7 +183,7 @@ public class DeleteObject {
         //delete page entity (release state)
         releaseSession.rollback();
         Entity entityRelease = releaseSession.find(entity.getKeyValue());
-        if(entityRelease != null) {
+        if (entityRelease != null) {
             // if in release store
             try {
                 releaseSession.delete(entityRelease);
@@ -167,20 +203,20 @@ public class DeleteObject {
      */
     private void deleteIDProvider(boolean checkOnly) {
         Map<String, List<IDProvider>> elementList = getDeleteElements();
-        if(checkOnly) {
-            ArrayList<IDProvider> lockedElements = new ArrayList<IDProvider>();
-            if(elementList.get(DEL_OBJECTS) != null) {
-                for(IDProvider idProv : elementList.get(DEL_OBJECTS)) {
-                    if(idProv.isLockedOnServer(true) && !idProv.isLocked()) {
+        if (checkOnly) {
+            List<IDProvider> lockedElements = new ArrayList<IDProvider>();
+            if (elementList.get(DEL_OBJECTS) != null) {
+                for (IDProvider idProv : elementList.get(DEL_OBJECTS)) {
+                    if (idProv.isLockedOnServer(true) && !idProv.isLocked()) {
                         // element is locked on server from different session, delete not possible
                         lockedElements.add(idProv);
                         result = false;
                     }
                 }
             }
-            if(elementList.get(REL_OBJECTS) != null) {
-                for(IDProvider idProv : elementList.get(REL_OBJECTS)) {
-                    if(idProv.isLockedOnServer(true) && !idProv.isLocked()) {
+            if (elementList.get(REL_OBJECTS) != null) {
+                for (IDProvider idProv : elementList.get(REL_OBJECTS)) {
+                    if (idProv.isLockedOnServer(true) && !idProv.isLocked()) {
                         // element is locked on server from different session, delete not possible
                         result = false;
                         lockedElements.add(idProv);
@@ -189,10 +225,10 @@ public class DeleteObject {
             }
             storeReferences(lockedElements);
         } else {
-            if(elementList.get(DEL_OBJECTS) != null && !elementList.get(DEL_OBJECTS).isEmpty()) {
+            if (elementList.get(DEL_OBJECTS) != null && !elementList.get(DEL_OBJECTS).isEmpty()) {
                 deleteElements(elementList.get(DEL_OBJECTS));
             }
-            if(elementList.get(REL_OBJECTS) != null && !elementList.get(REL_OBJECTS).isEmpty()) {
+            if (elementList.get(REL_OBJECTS) != null && !elementList.get(REL_OBJECTS).isEmpty()) {
                 releaseElements(elementList.get(REL_OBJECTS));
             }
         }
@@ -207,7 +243,7 @@ public class DeleteObject {
 
         // lock workflow element first
         try {
-            workflowScriptContext.getStoreElement().setLock(false,false);
+            workflowScriptContext.getElement().setLock(false, false);
         } catch (LockException e) {
             Logging.logError(EXCEPTION + idProvider, e, LOGGER);
         } catch (ElementDeletedException e) {
@@ -215,7 +251,7 @@ public class DeleteObject {
         }
 
         // delete elements
-        ServerActionHandle<? extends DeleteProgress, Boolean> handle = AccessUtil.delete(deleteObjects,true);
+        ServerActionHandle<? extends DeleteProgress, Boolean> handle = AccessUtil.delete(deleteObjects, true);
         if (handle != null) {
             try {
                 handle.checkAndThrow();
@@ -235,9 +271,7 @@ public class DeleteObject {
                     }
                 }
                 if (missingPermission != null && !missingPermission.isEmpty()) {
-                    if (missingPermission.size() > 0) {
-                        Logging.logInfo("MissingPermissionElement", LOGGER);
-                    }
+                    Logging.logInfo("MissingPermissionElement", LOGGER);
                     for (Long missing : missingPermission) {
                         Logging.logInfo(ID + missing, LOGGER);
                     }
@@ -247,7 +281,7 @@ public class DeleteObject {
             }
         }
         workflowScriptContext.getTask().closeTask();
-        workflowScriptContext.getStoreElement().refresh();
+        workflowScriptContext.getElement().refresh();
     }
 
 
@@ -259,7 +293,7 @@ public class DeleteObject {
     private void releaseElements(List<IDProvider> releaseObjects) {
         // release parent elements (only used in webedit workflow)
         ServerActionHandle<? extends ReleaseProgress, Boolean> releaseHandle;
-        for(IDProvider idProv : releaseObjects) {
+        for (IDProvider idProv : releaseObjects) {
             releaseHandle = AccessUtil.release(idProv, false, true, false, IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY);
             if (releaseHandle != null) {
                 try {
@@ -282,9 +316,8 @@ public class DeleteObject {
                         }
                     }
                     if (missingPermission != null && !missingPermission.isEmpty()) {
-                        if (missingPermission.size() > 0) {
-                            Logging.logInfo("MissingPermissionElement", LOGGER);
-                        }
+                        Logging.logInfo("MissingPermissionElement", LOGGER);
+
                         for (Long missing : missingPermission) {
                             Logging.logInfo(ID + missing, LOGGER);
                         }
@@ -299,15 +332,16 @@ public class DeleteObject {
                         requestOperation.setTitle(bundle.getString("permissionIssues"));
                         requestOperation.perform(bundle.getString("missingPermissions"));
                     }
+                    Logging.logError("Exception during Release of " + idProv, e, LOGGER);
                 } catch (Exception e) {
                     Logging.logError("Exception during Release of " + idProv, e, LOGGER);
                 }
             }
             // release new startnode (if modified through delete action)
-            if(idProv instanceof PageRefFolder) {
+            if (idProv instanceof PageRefFolder) {
                 StartNode startNode = ((PageRefFolder) idProv).getStartNode();
-                if(startNode != null && startNode.getReleaseStatus() != IDProvider.RELEASED) {
-                    ArrayList<IDProvider> startNodeList = new ArrayList<IDProvider>();
+                if (startNode != null && startNode.getReleaseStatus() != IDProvider.RELEASED) {
+                    List<IDProvider> startNodeList = new ArrayList<IDProvider>();
                     startNodeList.add(startNode);
                     releaseElements(startNodeList);
                 }
@@ -318,42 +352,37 @@ public class DeleteObject {
 
 
     /**
-     *    Gets delete and release elements, as the result is different for pagerefs in JC/Webedit.
-     *    In case of JC:
-     *     The element will be deleted.
-     *     The parent folder in the page-/sitestore are released.
-     *    In case of Webedit:
-     *     The pageref will be deleted.
-     *     If the pageref is the last node in the folder, the folder is deleted.
-     *     The page will be deleted if it is no longer used.
-     *     If the page is the last node in the folder, the folder is deleted (up-recursive).
-     *     The parent folder in the page-/sitestore are released.
+     * Gets delete and release elements, as the result is different for pagerefs in JC/Webedit. In case of JC: The element will be deleted. The parent
+     * folder in the page-/sitestore are released. In case of Webedit: The pageref will be deleted. If the pageref is the last node in the folder, the
+     * folder is deleted. The page will be deleted if it is no longer used. If the page is the last node in the folder, the folder is deleted
+     * (up-recursive). The parent folder in the page-/sitestore are released.
      *
-     *    @return a map with IDProvider objects to delete.
+     * @return a map with IDProvider objects to delete.
      */
     private Map<String, List<IDProvider>> getDeleteElements() {
-            HashMap<String, List<IDProvider>> deleteElements = new HashMap<String, List<IDProvider>>();
+        Map<String, List<IDProvider>> deleteElements = new HashMap<String, List<IDProvider>>();
 
-            // Webedit
-            if(workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
-                if(idProvider instanceof PageRef) {
-                    // add Page and PageFolder if no longer referenced
-                    regardPageStore();
-                    // add current PageRefStore element and PageRefFolders (up-recursive)
-                    regardPageRefStore();
-                } if (idProvider instanceof DocumentGroup) {
-                    // add current PageRefStore element and PageRefFolders (up-recursive)
-                    regardPageRefStore();
-                }
-            } else {
-                // JC
-                deleteObjects.add(idProvider);
-
-	            if (idProvider.getStore().getType() != Store.Type.TEMPLATESTORE) {
-		            // release parent folder
-		            releaseObjects.add(idProvider.getParent());
-	            }
+        // Webedit
+        if (workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+            if (idProvider instanceof PageRef) {
+                // add Page and PageFolder if no longer referenced
+                regardPageStore();
+                // add current PageRefStore element and PageRefFolders (up-recursive)
+                regardPageRefStore();
             }
+            if (idProvider instanceof DocumentGroup) {
+                // add current PageRefStore element and PageRefFolders (up-recursive)
+                regardPageRefStore();
+            }
+        } else {
+            // JC
+            deleteObjects.add(idProvider);
+
+            if (idProvider.getStore().getType() != Store.Type.TEMPLATESTORE) {
+                // release parent folder
+                releaseObjects.add(idProvider.getParent());
+            }
+        }
         deleteElements.put(DEL_OBJECTS, deleteObjects);
         deleteElements.put(REL_OBJECTS, releaseObjects);
 
@@ -362,50 +391,48 @@ public class DeleteObject {
 
     /**
      * This method adds the current PageRefStore element and PageFolder to the elements that should be deleted if they are no longer referenced.
-     *
      */
-    private void regardPageRefStore( ) {
-            // add current element
-            deleteObjects.add(idProvider);
-            // add PagerefFolder (up-recursive) if no child elements are present
-            IDProvider element = idProvider;
-            @SuppressWarnings({"unchecked"}) final StoreElementFilter filter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
-            while(element.getParent() != null) {
-                element = element.getParent();
-                Logging.logInfo("Checking element " + element.getUid(), LOGGER);
-                Iterator iter = element.getChildren(filter, false).iterator();
-                // folder has at least one element
-                iter.next();
-                // check if there are more
-                if(!iter.hasNext()) {
-                    Logging.logInfo("element has no children", LOGGER);
-                    deleteObjects.add(element);
-                } else {
-                    Logging.logInfo("element has children - abort", LOGGER);
-                    releaseObjects.add(element);
-                    break;
-                }
+    private void regardPageRefStore() {
+        // add current element
+        deleteObjects.add(idProvider);
+        // add PagerefFolder (up-recursive) if no child elements are present
+        IDProvider element = idProvider;
+        final StoreElementFilter filter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
+        while (element.getParent() != null) {
+            element = element.getParent();
+            Logging.logInfo("Checking element " + element.getUid(), LOGGER);
+            Iterator<StoreElement> iter = element.getChildren(filter, false).iterator();
+            // folder has at least one element
+            iter.next();
+            // check if there are more
+            if (!iter.hasNext()) {
+                Logging.logInfo("element has no children", LOGGER);
+                deleteObjects.add(element);
+            } else {
+                Logging.logInfo("element has children - abort", LOGGER);
+                releaseObjects.add(element);
+                break;
             }
+        }
 
     }
 
     /**
      * This method adds the Page and PageFolder to the elements that should be deleted if they are no longer referenced.
-     *
      */
     private void regardPageStore() {
         IDProvider element = ((PageRef) idProvider).getPage();
         // only referenced in pageref that will be deleted
-        if(element.getIncomingReferences().length == 1) {
+        if (element.getIncomingReferences().length == 1) {
             // add page
             deleteObjects.add(element);
             // delete PageFolder if last child is being deleted
-            @SuppressWarnings({"unchecked"}) final StoreElementFilter filter = on(PageFolder.class, Page.class);
-            while(element.getParent() != null) {
+            final StoreElementFilter filter = on(PageFolder.class, Page.class);
+            while (element.getParent() != null) {
                 element = element.getParent();
-                Iterator iter = element.getChildren(filter, false).iterator();
+                Iterator<StoreElement> iter = element.getChildren(filter, false).iterator();
                 iter.next();
-                if(!iter.hasNext()) {
+                if (!iter.hasNext()) {
                     deleteObjects.add(element);
                 } else {
                     releaseObjects.add(element);
@@ -422,11 +449,11 @@ public class DeleteObject {
      * @param lckObjects A list of IDProvider objects that reference the object to be deleted.
      */
     public void storeReferences(List<IDProvider> lckObjects) {
-        ArrayList<ArrayList> lockedObjects = new ArrayList<ArrayList>();
-        for(IDProvider idProv : lckObjects) {
-            ArrayList<String> lockedObjectList = new ArrayList<String>();
+        List<List<String>> lockedObjects = new ArrayList<List<String>>();
+        for (IDProvider idProv : lckObjects) {
+            List<String> lockedObjectList = new ArrayList<String>();
             lockedObjectList.add(idProv.getElementType());
-            if(idProv.hasUid()) {
+            if (idProv.hasUid()) {
                 lockedObjectList.add(idProv.getUid());
             } else {
                 lockedObjectList.add(idProv.getName());

@@ -24,14 +24,15 @@ import com.espirit.moddev.basicworkflows.util.FormEvaluator;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
+
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -41,28 +42,34 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfReleaseExecutable extends WorkflowExecutable implements Executable {
-    /** The logging class to use. */
+public class WfReleaseExecutable extends WorkflowExecutable {
+
+    /**
+     * The logging class to use.
+     */
     public static final Class<?> LOGGER = WfReleaseExecutable.class;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get("context");
+        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
         final boolean releaseWithMedia = new FormEvaluator(workflowScriptContext).getCheckboxValue("wf_releasewmedia");
         final WorkflowObject workflowObject = new WorkflowObject(workflowScriptContext);
         boolean releaseStatus = false;
-        ArrayList<Object> releaseObjects = new ArrayList<Object>();
+        List<Object> releaseObjects = new ArrayList<Object>();
 
         // check test case or skip if wfDoFail is set
-        if(getCustomAttribute(workflowScriptContext, "wfDoFail") == null || getCustomAttribute(workflowScriptContext, "wfDoFail").equals("false")) {
-            if(workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+        if (isNotFailed(workflowScriptContext)) {
+            if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
                 // do release of referenced media if checkbox is checked
                 releaseObjects.addAll(workflowObject.getRefObjectsFromEntity(releaseWithMedia));
                 releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(false);
                 // release entity
-                if(releaseStatus) {
+                if (releaseStatus) {
                     ContentWorkflowable contentWorkflowable = (ContentWorkflowable) workflowScriptContext.getWorkflowable();
                     // do release
                     releaseStatus = new ReleaseObject(workflowScriptContext, contentWorkflowable.getEntity()).release(false);
@@ -70,23 +77,24 @@ public class WfReleaseExecutable extends WorkflowExecutable implements Executabl
             } else {
                 // add dependend objects
                 releaseObjects.addAll(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia));
-                if(workflowScriptContext.getStoreElement() instanceof PageRef && (((PageRef) workflowScriptContext.getStoreElement()).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
-                    releaseObjects.add(((PageRef) workflowScriptContext.getStoreElement()).getPage());
+                if (workflowScriptContext.getElement() instanceof PageRef
+                    && (((PageRef) workflowScriptContext.getElement()).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
+                    releaseObjects.add(((PageRef) workflowScriptContext.getElement()).getPage());
                 }
                 // add the object
-                releaseObjects.add(workflowScriptContext.getStoreElement());
+                releaseObjects.add(workflowScriptContext.getElement());
                 // do release
                 releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(false);
             }
         }
         // check if release was successful (check wfDoFail for test case)
-        if(releaseStatus) {
+        if (releaseStatus) {
             try {
                 // refresh workflow object
-                if(workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+                if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
                     ((ContentWorkflowable) workflowScriptContext.getWorkflowable()).getEntity().refresh();
                 } else {
-                    workflowScriptContext.getStoreElement().refresh();
+                    workflowScriptContext.getElement().refresh();
                 }
                 // do final transition
                 workflowScriptContext.doTransition("trigger_finish");
@@ -94,7 +102,7 @@ public class WfReleaseExecutable extends WorkflowExecutable implements Executabl
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
-                showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
+                showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("releaseFailed"));
             }
         } else {
             try {
@@ -102,10 +110,15 @@ public class WfReleaseExecutable extends WorkflowExecutable implements Executabl
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
-                showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
+                showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("releaseFailed"));
             }
         }
         return true;
+    }
+
+    private boolean isNotFailed(WorkflowScriptContext workflowScriptContext) {
+        final Object wfDoFail = getCustomAttribute(workflowScriptContext, "wfDoFail");
+        return wfDoFail == null || WorkflowConstants.FALSE.equals(wfDoFail);
     }
 
 }

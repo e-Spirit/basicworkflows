@@ -24,12 +24,13 @@ import com.espirit.moddev.basicworkflows.util.FormEvaluator;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
+
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -39,19 +40,25 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfFindRelatedObjectsExecutable extends WorkflowExecutable implements Executable {
-    /** The logging class to use. */
+public class WfFindRelatedObjectsExecutable extends WorkflowExecutable {
+
+    /**
+     * The logging class to use.
+     */
     public static final Class<?> LOGGER = WfFindRelatedObjectsExecutable.class;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get("context");
+        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
         final WorkflowObject workflowObject = new WorkflowObject(workflowScriptContext);
-        ArrayList<Object> referencedObjects = new ArrayList<Object>();
+        List<Object> referencedObjects = new ArrayList<Object>();
 
-        if(workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+        if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
             referencedObjects.addAll(workflowObject.getRefObjectsFromEntity(true));
         } else {
             referencedObjects.addAll(workflowObject.getRefObjectsFromStoreElement(true));
@@ -64,7 +71,7 @@ public class WfFindRelatedObjectsExecutable extends WorkflowExecutable implement
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
-                showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
+                showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString(WorkflowConstants.RELEASE_FAILED));
             }
         } else {
             Logging.logWarning("Cannot be released! " + "(" + workflowObject.getId() + ")", LOGGER);
@@ -73,7 +80,7 @@ public class WfFindRelatedObjectsExecutable extends WorkflowExecutable implement
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Release failed!", e, LOGGER);
                 // show error message
-                showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("releaseFailed"));
+                showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString(WorkflowConstants.RELEASE_FAILED));
             }
         }
         return true;

@@ -23,8 +23,8 @@ package com.espirit.moddev.basicworkflows.release;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
+
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.Map;
@@ -36,25 +36,31 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfShowWarningExecutable extends WorkflowExecutable implements Executable {
-    /** The logging class to use. */
+public class WfShowWarningExecutable extends WorkflowExecutable {
+
+    /**
+     * The logging class to use.
+     */
     public static final Class<?> LOGGER = WfShowWarningExecutable.class;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get("context");
+        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
 
         // show dialog
-        showDialog(workflowScriptContext, bundle.getString("warning")+":", bundle.getString("warnReleaseMessage"));
+        showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING) + ":", bundle.getString("warnReleaseMessage"));
 
         try {
             workflowScriptContext.doTransition("trigger_check_ok_2");
         } catch (IllegalAccessException e) {
             Logging.logError("Workflow force transition failed!", e, LOGGER);
             // show error message
-            showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("displayWarningFailed"));
+            showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("displayWarningFailed"));
         }
 
         return true;

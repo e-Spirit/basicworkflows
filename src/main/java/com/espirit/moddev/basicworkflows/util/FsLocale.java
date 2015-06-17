@@ -38,13 +38,26 @@ import java.util.Locale;
  */
 
 public class FsLocale {
-    /** The current locale. */
+
+    /**
+     * The current locale.
+     */
     private Locale locale;
-    /** The current workflowScriptContext. */
+
+    /**
+     * The current workflowScriptContext.
+     */
     private WorkflowScriptContext workflowScriptContext;
-    /** The current context (for WorkflowStatusProvider). */
+
+    /**
+     * The current context (for WorkflowStatusProvider).
+     */
     private BaseContext baseContext;
- public final Class<?> LOGGER = FsLocale.class;
+
+    /**
+     * Logger class.
+     */
+    public static final Class<?> LOGGER = FsLocale.class;
 
     /**
      * Constructor for FsLocale.
@@ -58,7 +71,6 @@ public class FsLocale {
     }
 
 
-
     /**
      * Constructor for FsLocale.
      *
@@ -66,7 +78,7 @@ public class FsLocale {
      */
     public FsLocale(WorkflowScriptContext workflowScriptContext) {
         this.workflowScriptContext = workflowScriptContext;
-        if(workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+        if (workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
             WebeditUiAgent uiAgent = workflowScriptContext.requireSpecialist(WebeditUiAgent.TYPE);
             set(uiAgent.getDisplayLanguage().getLocale());
         } else {
@@ -75,7 +87,8 @@ public class FsLocale {
                 set(uiAgent.getDisplayLanguage().getLocale());
             } catch (IllegalStateException e) {
                 // catch exception for integration test case
-                set(java.util.Locale.getDefault());
+                set(Locale.getDefault());
+                Logging.logWarning("Falling back to default locale: " + Locale.getDefault(), e, LOGGER);
             }
         }
     }
@@ -98,17 +111,17 @@ public class FsLocale {
         return locale;
     }
 
-/**
+    /**
      * Method to get the current language.
      *
      * @return the current language.
      */
     public Language getLanguage() {
-        if(workflowScriptContext == null) {
+        if (workflowScriptContext == null) {
             LanguageAgent languageAgent = baseContext.requestSpecialist(LanguageAgent.TYPE);
             Language language = languageAgent.getMasterLanguage();
-            for(Language lang : languageAgent.getLanguages()) {
-                if(lang.getLocale() == locale) {
+            for (Language lang : languageAgent.getLanguages()) {
+                if (lang.getLocale().equals(locale)) {
                     language = lang;
                     break;
                 }

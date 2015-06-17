@@ -23,6 +23,7 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.FsException;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+
 import de.espirit.common.TypedFilter;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
@@ -42,7 +43,11 @@ import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
-import de.espirit.firstspirit.access.store.templatestore.*;
+import de.espirit.firstspirit.access.store.templatestore.Query;
+import de.espirit.firstspirit.access.store.templatestore.Schema;
+import de.espirit.firstspirit.access.store.templatestore.TableTemplate;
+import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
+import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.store.access.globalstore.GlobalContentAreaImpl;
 import de.espirit.or.schema.Entity;
 
@@ -57,15 +62,26 @@ import java.util.ResourceBundle;
  * @since 1.0
  */
 public class WorkflowObject {
-    /** The storeElement to use. */
+
+    /**
+     * The storeElement to use.
+     */
     private StoreElement storeElement;
-    /** The workflowScriptContext from the workflow. */
+    /**
+     * The workflowScriptContext from the workflow.
+     */
     private WorkflowScriptContext workflowScriptContext;
-    /** The content2 object from the workflow. */
+    /**
+     * The content2 object from the workflow.
+     */
     private Content2 content2;
-    /** The Entity to use. */
+    /**
+     * The Entity to use.
+     */
     private Entity entity;
-    /** The ResourceBundle that contains language specific labels. */
+    /**
+     * The ResourceBundle that contains language specific labels.
+     */
     private ResourceBundle bundle;
 
     /**
@@ -78,7 +94,7 @@ public class WorkflowObject {
         ResourceBundle.clearCache();
         bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
 
-        if(workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+        if (workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
             content2 = ((ContentWorkflowable) workflowScriptContext.getWorkflowable()).getContent();
             entity = ((ContentWorkflowable) workflowScriptContext.getWorkflowable()).getEntity();
         } else {
@@ -94,9 +110,9 @@ public class WorkflowObject {
      * @return the list of referenced objects.
      */
     public List<Object> getRefObjectsFromEntity() {
-        ArrayList<Object> referencedObjects= new ArrayList<Object>();
+        ArrayList<Object> referencedObjects = new ArrayList<Object>();
 
-        for(ReferenceEntry referenceEntry : content2.getSchema().getIncomingReferences(entity)) {
+        for (ReferenceEntry referenceEntry : content2.getSchema().getIncomingReferences(entity)) {
             referencedObjects.add(referenceEntry.getReferencedObject());
         }
         storeReferences(referencedObjects);
@@ -110,20 +126,20 @@ public class WorkflowObject {
      * @return the list of referenced objects.
      */
     public List<Object> getRefObjectsFromStoreElement() {
-        ArrayList<Object>referencedObjects = new ArrayList<Object>();
+        ArrayList<Object> referencedObjects = new ArrayList<Object>();
 
         if (storeElement instanceof PageRef) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement));
 
             // in case of webedit add page references
-            if(workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+            if (workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
                 referencedObjects.addAll(getReferences(((PageRef) storeElement).getPage()));
                 // remove added workflow element
                 referencedObjects.remove(storeElement);
 
 /** documentation example - begin **/
-                for (Section section : ((PageRef) storeElement).getPage().getChildren(Section.class, true)) {
+                for (Section<?> section : ((PageRef) storeElement).getPage().getChildren(Section.class, true)) {
                     referencedObjects.addAll(getReferences(section));
                 }
 /** documentation example - end **/
@@ -131,80 +147,87 @@ public class WorkflowObject {
             }
 
         } else if (storeElement instanceof DocumentGroup
-	                || storeElement instanceof PageRefFolder
-	                || storeElement instanceof GCAPage
-	                || storeElement instanceof PageFolder
-	                || storeElement instanceof Media
-	                || storeElement instanceof MediaFolder) {
-			// add outgoing references
-			referencedObjects.addAll(getReferences(storeElement));
+                   || storeElement instanceof PageRefFolder
+                   || storeElement instanceof GCAPage
+                   || storeElement instanceof PageFolder
+                   || storeElement instanceof Media
+                   || storeElement instanceof MediaFolder) {
+            // add outgoing references
+            referencedObjects.addAll(getReferences(storeElement));
 
         } else if (storeElement instanceof Page) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement));
 
 /** documentation example - begin **/
-            for (Section section : storeElement.getChildren(Section.class, true)) {
+            for (Section<?> section : storeElement.getChildren(Section.class, true)) {
                 referencedObjects.addAll(getReferences(section));
             }
 /** documentation example - end **/
 
         } else if (storeElement instanceof GlobalContentAreaImpl) {
             // Element is a content folder object -> aborting" (make sure this test occurs before the gcafolder-test)
-	        abortDeletion("deleteGCAnotPossible");
+            abortDeletion("deleteGCAnotPossible");
 
         } else if (storeElement instanceof GCAFolder) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement));
 
-        } else if (storeElement instanceof TemplateStoreElement || storeElement instanceof Query) { // In FirstSpirit 5.0 Query does not inherit from TemplateStoreElement
-	        // add outgoing references
-	        referencedObjects.addAll(getReferences(storeElement));
+        } else if (isTemplate()) {
+            // add outgoing references
+            referencedObjects.addAll(getReferences(storeElement));
 
-	        if (storeElement instanceof Schema && referencedObjects.isEmpty()) {
-		        TypedFilter<StoreElement> filter = new TypedFilter<StoreElement>(StoreElement.class) {
-			        @Override
-			        public boolean accept(final StoreElement storeElement) {
-				        return storeElement instanceof TableTemplate || storeElement instanceof Query;
-			        }
-		        };
+            if (storeElement instanceof Schema && referencedObjects.isEmpty()) {
+                TypedFilter<StoreElement> filter = new TypedFilter<StoreElement>(StoreElement.class) {
+                    private static final long serialVersionUID = 6357324775263530877L;
 
-		        for (StoreElement childElement : storeElement.getChildren(filter, true)) {
-			        referencedObjects.addAll(getReferences(childElement));
-		        }
-	        }
+                    @Override
+                    public boolean accept(final StoreElement storeElement) {
+                        return storeElement instanceof TableTemplate || storeElement instanceof Query;
+                    }
+                };
+
+                for (StoreElement childElement : storeElement.getChildren(filter, true)) {
+                    referencedObjects.addAll(getReferences(childElement));
+                }
+            }
 
         } else if (storeElement instanceof ProjectProperties) {
             // Element is a project property object -> aborting"
-	        abortDeletion("deletePPnotPossible");
+            abortDeletion("deletePPnotPossible");
 
         } else if (storeElement instanceof Content2) {
             // Element is a content2 folder object -> aborting"
-	        abortDeletion("deleteC2notPossible");
+            abortDeletion("deleteC2notPossible");
 
         } else if (storeElement instanceof ContentFolder) {
             // Element is a content folder object -> aborting"
-	        abortDeletion("deleteCFnotPossible");
+            abortDeletion("deleteCFnotPossible");
         }
         storeReferences(referencedObjects);
         return referencedObjects;
     }
 
-	private void abortDeletion(String errorMessageKey) {
-		workflowScriptContext.gotoErrorState(bundle.getString(errorMessageKey), new FsException());
-	}
+    private boolean isTemplate() {
+        // In FirstSpirit 5.0 Query does not inherit from TemplateStoreElement
+        return storeElement instanceof TemplateStoreElement || storeElement instanceof Query;
+    }
 
-	/**
+    private void abortDeletion(String errorMessageKey) {
+        workflowScriptContext.gotoErrorState(bundle.getString(errorMessageKey), new FsException());
+    }
+
+    /**
      * Convenience method to get referenced objects of storeElement and its parents.
      *
      * @param storeElement The storeElement to get references from.
      * @return the list of references.
      */
     private static List<IDProvider> getReferences(StoreElement storeElement) {
-        ArrayList<IDProvider> references = new ArrayList<IDProvider>();
+        List<IDProvider> references = new ArrayList<IDProvider>();
 
         // add outgoing references
-        for(ReferenceEntry referenceEntry : storeElement.getIncomingReferences()) {
+        for (ReferenceEntry referenceEntry : storeElement.getIncomingReferences()) {
             references.add(referenceEntry.getReferencedElement());
         }
 
@@ -218,20 +241,27 @@ public class WorkflowObject {
      * @param refObjects The list of references to store in the session.
      */
     public void storeReferences(List<Object> refObjects) {
-        ArrayList<String> referencedObjects = new ArrayList<String>();
-        for(Object obj : refObjects) {
-            if(obj  instanceof Section) {
-                Section section = (Section) obj ;
-                referencedObjects.add(section.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + section.getName() + ", " + section.getId() + ")");
+        List<String> referencedObjects = new ArrayList<String>();
+        for (Object obj : refObjects) {
+            if (obj instanceof Section) {
+                Section<?> section = (Section) obj;
+                referencedObjects.add(
+                    section.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + section.getName() + ", " + section.getId()
+                    + ")");
             } else if (obj instanceof Entity) {
                 Entity ent = (Entity) obj;
-                referencedObjects.add(ent.getIdentifier().getEntityTypeName() + " (" + ent.getIdentifier().getEntityTypeName() + ", ID#" + ent.get("fs_id") + ")");
+                referencedObjects.add(
+                    ent.getIdentifier().getEntityTypeName() + " (" + ent.getIdentifier().getEntityTypeName() + ", ID#" + ent.get("fs_id") + ")");
             } else {
                 IDProvider idProv = (IDProvider) obj;
-                if(idProv.hasUid()) {
-                    referencedObjects.add(idProv.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + idProv.getUid() + ", " + idProv.getId() + ")");
+                if (idProv.hasUid()) {
+                    referencedObjects.add(
+                        idProv.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + idProv.getUid() + ", " + idProv.getId()
+                        + ")");
                 } else {
-                    referencedObjects.add(idProv.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + idProv.getName() + ", " + idProv.getId() + ")");
+                    referencedObjects.add(
+                        idProv.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + idProv.getName() + ", " + idProv.getId()
+                        + ")");
                 }
             }
         }
@@ -245,7 +275,7 @@ public class WorkflowObject {
      * @return the ID.
      */
     public String getId() {
-        if(storeElement != null) {
+        if (storeElement != null) {
             return storeElement.getName();
         } else {
             return entity.getKeyValue().toString();

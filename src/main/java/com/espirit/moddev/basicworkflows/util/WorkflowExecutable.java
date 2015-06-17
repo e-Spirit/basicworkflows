@@ -21,6 +21,7 @@
 package com.espirit.moddev.basicworkflows.util;
 
 import de.espirit.common.base.Logging;
+import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.OperationAgent;
 import de.espirit.firstspirit.ui.operations.RequestOperation;
@@ -35,96 +36,101 @@ import java.util.Map;
  * @author stephan
  * @since 1.0
  */
-public class WorkflowExecutable {
+public class WorkflowExecutable implements Executable {
 
-	/**
-	 * The logging class to use.
-	 */
-	public static final Class<?> LOGGER = WorkflowExecutable.class;
-
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public Object execute(Map<String, Object> context, Writer out, Writer err) {
-		return execute(context);
-	}
+    /**
+     * The logging class to use.
+     */
+    public static final Class<?> LOGGER = WorkflowExecutable.class;
 
 
-	/**
-	 * Main executable method, replaced by actual implementations.
-	 *
-	 * @param context The current FirstSpirit context.
-	 * @return The context object.
-	 */
-	protected Object execute(Map<String, Object> context) {
-		return context;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final Object execute(Map<String, Object> context, Writer out, Writer err) {
+        return execute(context);
+    }
 
 
-	/**
-	 * A convenience method to display a message pop-up in the client.
-	 *
-	 * @param title                 The message title.
-	 * @param message               The message to display.
-	 * @param workflowScriptContext The context to use.
-	 */
-	protected void showDialog(WorkflowScriptContext workflowScriptContext, String title, String message) {
-		final String suppressDialog = (String) workflowScriptContext.getSession().get("wfSuppressDialog"); // set in integration tests
-		if (!"true".equals(suppressDialog)) {
-			try {
-				OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-				RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-				if (requestOperation != null) {
-					requestOperation.setTitle(title);
-					requestOperation.perform(message);
-				} // else do nothing (requestOperation == null for integration test case)
-			} catch (IllegalStateException e) {
-				Logging.logError("Show dialog failed.", e, LOGGER);
-				// catch exception for integration test case
-			}
-		}
-	}
+    /**
+     * Main executable method, replaced by actual implementations.
+     *
+     * @param context The current FirstSpirit context.
+     * @return The context object.
+     */
+    @Override
+    public Object execute(Map<String, Object> context) {
+        return context;
+    }
 
 
-	/**
-	 * A convenience method to display a question pop-up in the client
-	 *
-	 * @param workflowScriptContext The context to use.
-	 * @param title                 The pop-up title.
-	 * @param question              The question to display.
-	 * @return Boolean indicating whether the question was answered with yes or no
-	 */
-	protected boolean showQuestionDialog(WorkflowScriptContext workflowScriptContext, String title, String question) {
-		final String suppressDialog = (String) workflowScriptContext.getSession().get("wfSuppressDialog"); // set in integration tests
-		if (!"true".equals(suppressDialog)) {
-			OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-			RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-			boolean answer = true;
-			if (requestOperation != null) {
-				requestOperation.setTitle(title);
-				requestOperation.addYes();
-				RequestOperation.Answer noAnswer = requestOperation.addNo();
-				RequestOperation.Answer actualAnswer = requestOperation.perform(question);
-				answer = !noAnswer.equals(actualAnswer);
-			}
-			return answer;
-		} else {
-			// Always return true for integration tests
-			return true;
-		}
-	}
+    /**
+     * A convenience method to display a message pop-up in the client.
+     *
+     * @param title                 The message title.
+     * @param message               The message to display.
+     * @param workflowScriptContext The context to use.
+     */
+    protected void showDialog(WorkflowScriptContext workflowScriptContext, String title, String message) {
+        // set in integration tests
+        final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
+        if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
+            try {
+                OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+                RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+                if (requestOperation != null) {
+                    requestOperation.setTitle(title);
+                    requestOperation.perform(message);
+                }
+                // else do nothing (requestOperation == null for integration test case)
+            } catch (IllegalStateException e) {
+                // catch exception for integration test case
+                Logging.logError("Show dialog failed.", e, LOGGER);
+            }
+        }
+    }
 
 
-	/**
-	 * Convenience method to get the value of a custom workflow attribute.
-	 *
-	 * @param workflowScriptContext The context to use.
-	 * @param attribute             The attribute to get the value for.
-	 * @return the value.
-	 */
-	protected Object getCustomAttribute(WorkflowScriptContext workflowScriptContext, String attribute) {
-		return workflowScriptContext.getTask().getCustomAttributes().get(attribute);
-	}
+    /**
+     * A convenience method to display a question pop-up in the client.
+     *
+     * @param workflowScriptContext The context to use.
+     * @param title                 The pop-up title.
+     * @param question              The question to display.
+     * @return Boolean indicating whether the question was answered with yes or no
+     */
+    protected boolean showQuestionDialog(WorkflowScriptContext workflowScriptContext, String title, String question) {
+        // set in integration tests
+        final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
+        if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
+            OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+            RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
+            boolean answer = true;
+            if (requestOperation != null) {
+                requestOperation.setTitle(title);
+                requestOperation.addYes();
+                RequestOperation.Answer noAnswer = requestOperation.addNo();
+                RequestOperation.Answer actualAnswer = requestOperation.perform(question);
+                answer = !noAnswer.equals(actualAnswer);
+            }
+            return answer;
+        } else {
+            // Always return true for integration tests
+            return true;
+        }
+    }
+
+
+    /**
+     * Convenience method to get the value of a custom workflow attribute.
+     *
+     * @param workflowScriptContext The context to use.
+     * @param attribute             The attribute to get the value for.
+     * @return the value.
+     */
+    protected Object getCustomAttribute(WorkflowScriptContext workflowScriptContext, String attribute) {
+        return workflowScriptContext.getTask().getCustomAttributes().get(attribute);
+    }
 
 }

@@ -23,11 +23,11 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
+
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -37,22 +37,28 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfShowRelatedObjectsExecutable extends WorkflowExecutable implements Executable {
-    /** The logging class to use. */
+public class WfShowRelatedObjectsExecutable extends WorkflowExecutable {
+
+    /**
+     * The logging class to use.
+     */
     public static final Class<?> LOGGER = WfShowRelatedObjectsExecutable.class;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get("context");
+        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
 
-        @SuppressWarnings("unchecked")
-        ArrayList<String> referencedObjects = (ArrayList<String>) workflowScriptContext.getSession().get("wfReferencedObjects");
-        StringBuilder notReleased = new StringBuilder(bundle.getString("objectsInUse")).append(":\n\n");
+        List<String> referencedObjects = (List<String>) workflowScriptContext.getSession().get("wfReferencedObjects");
+        final String objectsInUse = bundle.getString("objectsInUse");
+        StringBuilder notReleased = new StringBuilder(objectsInUse).append(":\n\n");
         int i = 0;
-        for(String referencedObject : referencedObjects) {
-            if(i != 0) {
+        for (String referencedObject : referencedObjects) {
+            if (i != 0) {
                 notReleased.append("\n");
             } else {
                 i++;
@@ -61,14 +67,14 @@ public class WfShowRelatedObjectsExecutable extends WorkflowExecutable implement
         }
 
         // show dialog
-        showDialog(workflowScriptContext, bundle.getString("objectsInUse")+":", notReleased.toString());
+        showDialog(workflowScriptContext, objectsInUse + ":", notReleased.toString());
 
         try {
             workflowScriptContext.doTransition("trigger_check_related_objects");
         } catch (IllegalAccessException e) {
             Logging.logError("Workflow Re-Delete Objects failed!", e, LOGGER);
             // show error message
-            showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("reDeleteFailed"));
+            showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("reDeleteFailed"));
         }
 
         return true;

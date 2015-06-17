@@ -23,12 +23,11 @@ package com.espirit.moddev.basicworkflows.release;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
+
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -38,32 +37,37 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfShowNotReleasedObjectsExecutable extends WorkflowExecutable implements Executable {
-    /** The logging class to use. */
+public class WfShowNotReleasedObjectsExecutable extends WorkflowExecutable {
+
+    /**
+     * The logging class to use.
+     */
     public static final Class<?> LOGGER = WfShowNotReleasedObjectsExecutable.class;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get("context");
+        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
 
-        @SuppressWarnings("unchecked")
-        HashMap<String, IDProvider.UidType> notReleasedElements = (HashMap<String, IDProvider.UidType>) workflowScriptContext.getSession().get("wfNotReleasedElements");
+        Map<String, IDProvider.UidType>
+            notReleasedElements =
+            (Map<String, IDProvider.UidType>) workflowScriptContext.getSession().get("wfNotReleasedElements");
         StringBuilder notReleased = new StringBuilder(bundle.getString("releaseObjects")).append(":\n\n");
         for (Map.Entry<String, IDProvider.UidType> entry : notReleasedElements.entrySet()) {
             notReleased.append(entry.getKey()).append("\n");
         }
 
-        // show dialog
-        showDialog(workflowScriptContext, bundle.getString("notReleasedObjects")+":\n\n", notReleased.toString());
+        showDialog(workflowScriptContext, bundle.getString("notReleasedObjects") + ":\n\n", notReleased.toString());
 
         try {
             workflowScriptContext.doTransition("trigger_check_not_released_objects");
         } catch (IllegalAccessException e) {
             Logging.logError("Workflow Re-Release Objects failed!", e, LOGGER);
-            // show error message
-            showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("reReleaseFailed"));
+            showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("reReleaseFailed"));
         }
 
         return true;

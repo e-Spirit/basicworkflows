@@ -33,7 +33,10 @@ import java.util.Set;
  * @since 1.0
  */
 public class FormEvaluator {
-    /** The workflowScriptContext from the workflow. */
+
+    /**
+     * The workflowScriptContext from the workflow.
+     */
     private WorkflowScriptContext workflowScriptContext;
 
     /**
@@ -56,19 +59,23 @@ public class FormEvaluator {
 
         Object relwMedia = workflowScriptContext.getTask().getCustomAttributes().get("wf_releasewmedia");
         // test case
-        if(relwMedia != null) {
-            if(relwMedia.equals("true")) {
+        if (relwMedia != null) {
+            if (isReleaseMedia(relwMedia)) {
                 releaseWithMedia = true;
             }
-        // standard case
+            // standard case
         } else {
             final CheckboxEditorValue value = (CheckboxEditorValue) workflowScriptContext.getData().get(varname).getEditor();
             final Set<Option> options = value.get(workflowScriptContext.getProject().getMasterLanguage());
-            for(Option option : options) {
+            for (Option option : options) {
                 releaseWithMedia = Boolean.parseBoolean((String) option.getValue());
             }
         }
 
         return releaseWithMedia;
+    }
+
+    private boolean isReleaseMedia(Object relwMedia) {
+        return WorkflowConstants.TRUE.equals(relwMedia);
     }
 }

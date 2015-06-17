@@ -20,9 +20,12 @@
 
 package com.espirit.moddev;
 
+import com.espirit.moddev.basicworkflows.util.IntegrationTest;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +39,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Integration test for basicworkflows
  */
+@Category(IntegrationTest.class)
 public class basicworkflowsTestIT {
 
     String MODULE_DESCRIPTOR = "META-INF/module.xml";

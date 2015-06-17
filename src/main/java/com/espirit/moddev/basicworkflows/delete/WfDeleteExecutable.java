@@ -23,8 +23,8 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
+
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.Map;
@@ -36,42 +36,54 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfDeleteExecutable extends WorkflowExecutable implements Executable {
-    /** The logging class to use. */
-    public static final Class<?> LOGGER = WfDeleteExecutable.class;
+public class WfDeleteExecutable extends WorkflowExecutable {
 
-    /** {@inheritDoc} */
+    /**
+     * The logging class to use.
+     */
+    public static final Class<?> LOGGER = WfDeleteExecutable.class;
+    private static final String MSG_WORKFLOW_DELETE_FAILED = "Workflow Delete failed!";
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get("context");
+        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
         boolean deleteStatus = false;
 
         // check if delete was successful (skip if wfDoFail is set by test case)
-        if(getCustomAttribute(workflowScriptContext, "wfDoFail") == null || getCustomAttribute(workflowScriptContext, "wfDoFail").equals("false")) {
+        if (isNotDoFail(workflowScriptContext)) {
             deleteStatus = new DeleteObject(workflowScriptContext).delete(false);
         }
         // if delete was successful
-        if(deleteStatus) {
+        if (deleteStatus) {
             try {
                 workflowScriptContext.doTransition("trigger_finish");
                 Logging.logInfo("Workflow Delete successful.", LOGGER);
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Delete failed!", e, LOGGER);
+                Logging.logError(MSG_WORKFLOW_DELETE_FAILED, e, LOGGER);
                 // show error message
-                showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("deleteFailed"));
+                showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString(WorkflowConstants.DELETE_FAILED));
             }
         } else {
             // delete failed
             try {
                 workflowScriptContext.doTransition("trigger_delete_failed");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Delete failed!", e, LOGGER);
+                Logging.logError(MSG_WORKFLOW_DELETE_FAILED, e, LOGGER);
                 // show error message
-                showDialog(workflowScriptContext, bundle.getString("errorMsg"), bundle.getString("deleteFailed"));
+                showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString(WorkflowConstants.DELETE_FAILED));
             }
         }
         return true;
+    }
+
+    private boolean isNotDoFail(WorkflowScriptContext workflowScriptContext) {
+        return getCustomAttribute(workflowScriptContext, "wfDoFail") == null || WorkflowConstants.FALSE.equals(
+            getCustomAttribute(workflowScriptContext, "wfDoFail"));
     }
 
 }

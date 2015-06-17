@@ -1,3 +1,22 @@
+/*
+ * **********************************************************************
+ * basicworkflows
+ * %%
+ * Copyright (C) 2012 - 2015 e-Spirit AG
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * **********************************************************************
+ */
 package com.espirit.moddev.basicworkflows.delete;
 
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
@@ -82,7 +101,7 @@ public class WfCheckPrerequisitesExecutableTest {
 
 	@Test
 	public void testDeleteTemplateFolderWithChildTemplate() throws IllegalAccessException {
-		setMockStoreElement(templateFolder);
+		setMockIdProvider(templateFolder);
 		Template childTemplate = mock(Template.class);
 		testDeleteTemplateFolderWithChild(childTemplate);
 		verify(requestOperation).perform(resourceBundle.getString("hasChildren"));
@@ -91,15 +110,15 @@ public class WfCheckPrerequisitesExecutableTest {
 
 	@Test
 	public void testDeleteTemplateFolderWithChildTemplateFolder() throws IllegalAccessException {
-		setMockStoreElement(templateFolder);
+		setMockIdProvider(templateFolder);
 		TemplateFolder childTemplateFolder = mock(TemplateFolder.class);
 		testDeleteTemplateFolderWithChild(childTemplateFolder);
 		verify(requestOperation).perform(resourceBundle.getString("hasChildren"));
 		verify(workflowScriptContext).doTransition("trigger_folder_ok");
 	}
 
-	private void setMockStoreElement(StoreElement mockStoreElement) {
-		when(workflowScriptContext.getStoreElement()).thenReturn(mockStoreElement);
+	private void setMockIdProvider(IDProvider mockStoreElement) {
+		when(workflowScriptContext.getElement()).thenReturn(mockStoreElement);
 	}
 
 	private void testDeleteTemplateFolderWithChild(final StoreElement templateFolderChild) throws IllegalAccessException {

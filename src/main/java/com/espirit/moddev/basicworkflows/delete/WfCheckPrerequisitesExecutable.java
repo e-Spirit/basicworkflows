@@ -23,11 +23,15 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
+
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.Task;
-import de.espirit.firstspirit.access.script.Executable;
-import de.espirit.firstspirit.access.store.*;
+import de.espirit.firstspirit.access.store.ElementDeletedException;
+import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.LockException;
+import de.espirit.firstspirit.access.store.StoreElement;
+import de.espirit.firstspirit.access.store.StoreElementFilter;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
 import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
@@ -58,50 +62,56 @@ import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
  * @author stephan
  * @since 1.0
  */
-public class WfCheckPrerequisitesExecutable extends WorkflowExecutable implements Executable {
-    /**
-	 * The logging class to use.
-	 * */
-    public static final Class<?> LOGGER = WfCheckPrerequisitesExecutable.class;
+public class WfCheckPrerequisitesExecutable extends WorkflowExecutable {
 
     /**
-	 * {@inheritDoc}
-	 */
+     * The logging class to use.
+     */
+    public static final Class<?> LOGGER = WfCheckPrerequisitesExecutable.class;
+    private static final String WF_FOLDER_CHECK_FAIL = "wfFolderCheckFail";
+    private static final String MSG_WORKFLOW_CHECK_FAILED = "Workflow Check failed!";
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get("context");
+        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
 
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
 
         //show warning dialog if prerequisites are not met and wfFolderCheckFail is not set
-        if(getCustomAttribute(workflowScriptContext, "wfCheckPrerequisitesFail") == null) {
-            StoreElement storeElement = workflowScriptContext.getStoreElement();
+        if (getCustomAttribute(workflowScriptContext, "wfCheckPrerequisitesFail") == null) {
+            StoreElement storeElement = workflowScriptContext.getElement();
             String message = "";
 
-			// workflow handling
-			boolean abortWorkflow = false;
+            // workflow handling
+            boolean abortWorkflow = false;
             IDProvider element = (IDProvider) storeElement;
-			Workflow executedWorkflow = workflowScriptContext.getTask().getWorkflow();
+            Workflow executedWorkflow = workflowScriptContext.getTask().getWorkflow();
 
-			// check if workflow is executed on a workflow and on itself
-			if (element instanceof Workflow) {
-				boolean isExecutedWorkflow = isExecutedWorkflow(element, executedWorkflow);
-				if (isExecutedWorkflow) {
-					Logging.logDebug("The workflow can't delete itself", LOGGER);
+            // check if workflow is executed on a workflow and on itself
+            if (element instanceof Workflow) {
+                boolean isExecutedWorkflow = isExecutedWorkflow(element, executedWorkflow);
+                if (isExecutedWorkflow) {
+                    Logging.logDebug("The workflow can't delete itself", LOGGER);
                     showDialog(workflowScriptContext, bundle.getString("deleteWorkflow"), bundle.getString("deleteDeleteItselfNotPossible"));
-					abortWorkflow = true;
-				} else {
+                    abortWorkflow = true;
+                } else {
                     // query and close (if confirmed) all open workflow instances
                     QueryAgent queryAgent = workflowScriptContext.requireSpecialist(QueryAgent.TYPE);
                     Iterable<IDProvider> searchResults = queryAgent.answer("fs.workflow = *");
                     Map<Task, IDProvider> openInstances = getOpenInstances(element, searchResults);
 
-                    if (openInstances.size() > 0) {
-                        StringBuffer dialogMessage = new StringBuffer(bundle.getString("closeWorkflowInstances"));
+                    if (!openInstances.isEmpty()) {
+                        StringBuilder dialogMessage = new StringBuilder(bundle.getString("closeWorkflowInstances"));
                         for (Map.Entry<Task, IDProvider> entry : openInstances.entrySet()) {
-                            dialogMessage.append("\n- " + entry.getValue().getUid());
+                            dialogMessage.append("\n- ").append(entry.getValue().getUid());
                         }
-                        boolean confirmCloseTask = showQuestionDialog(workflowScriptContext, bundle.getString("workflowInstances"), dialogMessage.toString());
+                        boolean
+                            confirmCloseTask =
+                            showQuestionDialog(workflowScriptContext, bundle.getString("workflowInstances"), dialogMessage.toString());
 
                         if (confirmCloseTask) {
                             closeOpenInstances(openInstances);
@@ -112,99 +122,95 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable implement
                         Logging.logDebug("No open workflow instances found", LOGGER);
                     }
 
-				}
-			}
+                }
+            }
 
             // check if folder has children
-            @SuppressWarnings({"unchecked"}) final StoreElementFilter filter = on(TemplateFolder.class, Template.class, PageFolder.class, Page.class, PageRefFolder.class,
-					PageRef.class, DocumentGroup.class, ContentFolder.class, Content2.class, MediaFolder.class, Media.class, GCAPage.class, GCAFolder.class);
-	        if (!abortWorkflow &&
-					(storeElement.getChildren(filter, true).getFirst() == null
-		        	|| showQuestionDialog(workflowScriptContext, bundle.getString("warning"), bundle.getString("hasChildren")))) {
+            final StoreElementFilter filter = on(TemplateFolder.class, Template.class, PageFolder.class, Page.class, PageRefFolder.class,
+                                                 PageRef.class, DocumentGroup.class, ContentFolder.class, Content2.class, MediaFolder.class,
+                                                 Media.class, GCAPage.class,
+                                                 GCAFolder.class);
+            if (!abortWorkflow &&
+                (storeElement.getChildren(filter, true).getFirst() == null
+                 || showQuestionDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING), bundle.getString("hasChildren")))) {
 
-		        // check if last element in pageref-folder is to be deleted
-		        if ((storeElement instanceof PageRefFolder || storeElement instanceof PageRef
-						|| storeElement instanceof DocumentGroup)
-						&& !workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+                // check if last element in pageref-folder is to be deleted
+                if ((storeElement instanceof PageRefFolder || storeElement instanceof PageRef
+                     || storeElement instanceof DocumentGroup)
+                    && !workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
 
-					@SuppressWarnings({ "unchecked" }) final StoreElementFilter sitestoreFilter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
-			        Iterator iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
-			        iter.next();
-			        if (!iter.hasNext()) {
-				        if (message.length() == 0) {
-					        message += "\n\n";
-				        }
-				        message += bundle.getString("lastElement") + "\n";
-			        }
-		        }
+                    final StoreElementFilter sitestoreFilter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
+                    Iterator iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
+                    iter.next();
+                    if (!iter.hasNext()) {
+                        if (message.length() == 0) {
+                            message += "\n\n";
+                        }
+                        message += bundle.getString("lastElement") + "\n";
+                    }
+                }
 
-		        if (message.length() > 0) {
-			        showDialog(workflowScriptContext, bundle.getString("warning"), message);
-		        }
+                if (message.length() > 0) {
+                    showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING), message);
+                }
 
-		        try {
-			        workflowScriptContext.doTransition("trigger_folder_ok");
-		        } catch (IllegalAccessException e) {
-			        Logging.logError("Workflow Check failed!", e, LOGGER);
-		        }
-	        } else {
-		        try {
-			        workflowScriptContext.doTransition("trigger_abort_deletion");
-		        } catch (IllegalAccessException e) {
-			        Logging.logError("Workflow Check failed!", e, LOGGER);
-		        }
-	        }
-        } else if(getCustomAttribute(workflowScriptContext, "wfFolderCheckFail") != null && getCustomAttribute(workflowScriptContext, "wfFolderCheckFail").equals("true")) {
+                try {
+                    workflowScriptContext.doTransition("trigger_folder_ok");
+                } catch (IllegalAccessException e) {
+                    Logging.logError(MSG_WORKFLOW_CHECK_FAILED, e, LOGGER);
+                }
+            } else {
+                try {
+                    workflowScriptContext.doTransition("trigger_abort_deletion");
+                } catch (IllegalAccessException e) {
+                    Logging.logError(MSG_WORKFLOW_CHECK_FAILED, e, LOGGER);
+                }
+            }
+        } else if (isFolderCheckFailTrue(workflowScriptContext)) {
             // fail test if wfFolderCheckFail is set
             try {
                 workflowScriptContext.doTransition("trigger_check_conflict");
             } catch (IllegalAccessException e) {
-                Logging.logError("Workflow Check failed!", e, LOGGER);
+                Logging.logError(MSG_WORKFLOW_CHECK_FAILED, e, LOGGER);
             }
         }
         return true;
     }
 
-	/**
-	 * Checks whether the element on which the workflow is executed, is the workflow itself.
-	 *
-	 * @param element
-	 * @param workflow
-	 * @return
-	 */
-	private boolean isExecutedWorkflow(IDProvider element, Workflow workflow) {
-		String elementUid = element.getUid();
-		String workflowUid = workflow.getUid();
-		if (elementUid.equals(workflowUid)) {
-			return true;
-		}
-		return false;
-	}
+    private boolean isFolderCheckFailTrue(WorkflowScriptContext workflowScriptContext) {
+        final Object customAttribute = getCustomAttribute(workflowScriptContext, WF_FOLDER_CHECK_FAIL);
+        return WorkflowConstants.TRUE.equals(customAttribute);
+    }
 
-	/**
-	 * Returns all open instances from the given workflow element.
-	 *
-	 * @param searchResults
-	 * @param element
-	 * @return
-	 */
-	private Map<Task,IDProvider> getOpenInstances(IDProvider element, Iterable<IDProvider> searchResults) {
-		Map<Task,IDProvider> openInstances = new HashMap<Task,IDProvider>();
-		for (IDProvider result : searchResults) {
-			String workflowUid = result.getTask().getWorkflow().getUid();
-			if (workflowUid.equals(element.getUid())) {
+    /**
+     * Checks whether the element on which the workflow is executed, is the workflow itself.
+     */
+    private boolean isExecutedWorkflow(IDProvider element, Workflow workflow) {
+        String elementUid = element.getUid();
+        String workflowUid = workflow.getUid();
+        return elementUid.equals(workflowUid);
+    }
+
+    /**
+     * Returns all open instances from the given workflow element.
+     */
+    private Map<Task, IDProvider> getOpenInstances(IDProvider element, Iterable<IDProvider> searchResults) {
+        Map<Task, IDProvider> openInstances = new HashMap<Task, IDProvider>();
+        for (IDProvider result : searchResults) {
+            String workflowUid = result.getTask().getWorkflow().getUid();
+            if (workflowUid.equals(element.getUid())) {
                 openInstances.put(result.getTask(), result);
-			}
-		}
-		return openInstances;
-	}
+            }
+        }
+        return openInstances;
+    }
 
     /**
      * Close all given workflow instances.
      *
-     * @param openInstances
+     * @param openInstances open instances
      */
-    public void closeOpenInstances(Map<Task,IDProvider> openInstances) {
+    public void closeOpenInstances(Map<Task, IDProvider> openInstances) {
         for (Map.Entry<Task, IDProvider> entry : openInstances.entrySet()) {
             // remove task
             IDProvider element = entry.getValue();
@@ -215,9 +221,9 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable implement
                 element.setLock(false, true);
                 element.refresh();
             } catch (LockException e) {
-                e.printStackTrace();
+                Logging.logError(e.getMessage(), e, LOGGER);
             } catch (ElementDeletedException e) {
-                e.printStackTrace();
+                Logging.logError(e.getMessage(), e, LOGGER);
             }
 
             // close task
@@ -228,7 +234,7 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable implement
                 task.save();
                 task.unlock();
             } catch (LockException e) {
-                e.printStackTrace();
+                Logging.logError(e.getMessage(), e, LOGGER);
             }
         }
     }
