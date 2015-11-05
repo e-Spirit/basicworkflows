@@ -20,9 +20,9 @@
 
 package com.espirit.moddev.basicworkflows.delete;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
@@ -38,16 +38,13 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfFindRelatedObjectsExecutable extends WorkflowExecutable {
+public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
 
     /**
      * The logging class to use.
      */
     public static final Class<?> LOGGER = WfFindRelatedObjectsExecutable.class;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);

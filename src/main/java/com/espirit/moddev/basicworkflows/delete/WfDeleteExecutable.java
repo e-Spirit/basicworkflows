@@ -20,9 +20,9 @@
 
 package com.espirit.moddev.basicworkflows.delete;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
@@ -36,7 +36,7 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfDeleteExecutable extends WorkflowExecutable {
+public class WfDeleteExecutable extends AbstractWorkflowExecutable {
 
     /**
      * The logging class to use.
@@ -44,9 +44,7 @@ public class WfDeleteExecutable extends WorkflowExecutable {
     public static final Class<?> LOGGER = WfDeleteExecutable.class;
     private static final String MSG_WORKFLOW_DELETE_FAILED = "Workflow Delete failed!";
 
-    /**
-     * {@inheritDoc}
-     */
+
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
@@ -55,7 +53,7 @@ public class WfDeleteExecutable extends WorkflowExecutable {
         boolean deleteStatus = false;
 
         // check if delete was successful (skip if wfDoFail is set by test case)
-        if (isNotDoFail(workflowScriptContext)) {
+        if (isNotFailed(workflowScriptContext)) {
             deleteStatus = new DeleteObject(workflowScriptContext).delete(false);
         }
         // if delete was successful
@@ -79,11 +77,6 @@ public class WfDeleteExecutable extends WorkflowExecutable {
             }
         }
         return true;
-    }
-
-    private boolean isNotDoFail(WorkflowScriptContext workflowScriptContext) {
-        return getCustomAttribute(workflowScriptContext, "wfDoFail") == null || WorkflowConstants.FALSE.equals(
-            getCustomAttribute(workflowScriptContext, "wfDoFail"));
     }
 
 }

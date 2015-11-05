@@ -20,9 +20,9 @@
 
 package com.espirit.moddev.basicworkflows.delete;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
@@ -36,16 +36,13 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfShowWarningExecutable extends WorkflowExecutable {
+public class WfShowWarningExecutable extends AbstractWorkflowExecutable {
 
     /**
      * The logging class to use.
      */
     public static final Class<?> LOGGER = WfShowWarningExecutable.class;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);

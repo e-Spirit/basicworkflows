@@ -57,7 +57,33 @@ public interface WorkflowConstants {
      * Resource bundle key for delete failed message.
      */
     String DELETE_FAILED = "deleteFailed";
+
+    /**
+     * Resource bundle key for release failed message.
+     */
     String RELEASE_FAILED = "releaseFailed";
+
+    /**
+     * Key to suppress dialog for testing.
+     */
     String WF_SUPPRESS_DIALOG = "wfSuppressDialog";
+
+    /**
+     * Resource bundle key for warning message.
+     */
     String WARNING = "warning";
+
+    /**
+     * Key that identifies the releasePageRefElements.
+     */
+    String RELEASE_PAGEREF_ELEMENTS = "releasePageRefElements";
+
+    /**
+     * Key that identifies the relatedPageRefElements.
+     */
+    String RELATED_PAGEREF_ELEMENTS = "relatedPageRefElements";
+
+    String WF_NOT_RELEASED_ELEMENTS = "wfNotReleasedElements";
+
+    String WF_BROKEN_REFERENCES = "wfBrokenReferences";
 }

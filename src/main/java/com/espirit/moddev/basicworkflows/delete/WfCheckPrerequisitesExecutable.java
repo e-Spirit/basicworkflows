@@ -20,9 +20,9 @@
 
 package com.espirit.moddev.basicworkflows.delete;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
@@ -62,7 +62,7 @@ import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
  * @author stephan
  * @since 1.0
  */
-public class WfCheckPrerequisitesExecutable extends WorkflowExecutable {
+public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
 
     /**
      * The logging class to use.
@@ -71,9 +71,6 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable {
     private static final String WF_FOLDER_CHECK_FAIL = "wfFolderCheckFail";
     private static final String MSG_WORKFLOW_CHECK_FAILED = "Workflow Check failed!";
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
@@ -177,7 +174,7 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable {
         return true;
     }
 
-    private boolean isFolderCheckFailTrue(WorkflowScriptContext workflowScriptContext) {
+    private static boolean isFolderCheckFailTrue(WorkflowScriptContext workflowScriptContext) {
         final Object customAttribute = getCustomAttribute(workflowScriptContext, WF_FOLDER_CHECK_FAIL);
         return WorkflowConstants.TRUE.equals(customAttribute);
     }
@@ -185,7 +182,7 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable {
     /**
      * Checks whether the element on which the workflow is executed, is the workflow itself.
      */
-    private boolean isExecutedWorkflow(IDProvider element, Workflow workflow) {
+    private static boolean isExecutedWorkflow(IDProvider element, Workflow workflow) {
         String elementUid = element.getUid();
         String workflowUid = workflow.getUid();
         return elementUid.equals(workflowUid);
@@ -194,7 +191,7 @@ public class WfCheckPrerequisitesExecutable extends WorkflowExecutable {
     /**
      * Returns all open instances from the given workflow element.
      */
-    private Map<Task, IDProvider> getOpenInstances(IDProvider element, Iterable<IDProvider> searchResults) {
+    private static Map<Task, IDProvider> getOpenInstances(IDProvider element, Iterable<IDProvider> searchResults) {
         Map<Task, IDProvider> openInstances = new HashMap<Task, IDProvider>();
         for (IDProvider result : searchResults) {
             String workflowUid = result.getTask().getWorkflow().getUid();

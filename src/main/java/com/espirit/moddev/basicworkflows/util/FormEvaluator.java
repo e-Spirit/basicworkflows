@@ -75,7 +75,7 @@ public class FormEvaluator {
         return releaseWithMedia;
     }
 
-    private boolean isReleaseMedia(Object relwMedia) {
+    private static boolean isReleaseMedia(Object relwMedia) {
         return WorkflowConstants.TRUE.equals(relwMedia);
     }
 }

@@ -20,10 +20,11 @@
 
 package com.espirit.moddev.basicworkflows.release;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FormEvaluator;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
+import com.espirit.moddev.basicworkflows.util.StoreUtil;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.IDProvider;
@@ -42,16 +43,14 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfReleaseExecutable extends WorkflowExecutable {
+public class WfReleaseExecutable extends AbstractWorkflowExecutable {
 
     /**
      * The logging class to use.
      */
     public static final Class<?> LOGGER = WfReleaseExecutable.class;
 
-    /**
-     * {@inheritDoc}
-     */
+
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
@@ -64,7 +63,27 @@ public class WfReleaseExecutable extends WorkflowExecutable {
 
         // check test case or skip if wfDoFail is set
         if (isNotFailed(workflowScriptContext)) {
-            if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+            Object releasePageRefElements = readObjectFromSession(workflowScriptContext, WorkflowConstants.RELEASE_PAGEREF_ELEMENTS);
+            List<String> releasePageRefUids = null;
+            if(releasePageRefElements != null) {
+                releasePageRefUids = (List<String>) releasePageRefElements;
+            }
+
+            if (releasePageRefUids != null  && !releasePageRefUids.isEmpty()) {
+                for (String pageRefUid : releasePageRefUids) {
+                    PageRef pageRef = new StoreUtil(workflowScriptContext).loadPageRefByUid(pageRefUid);
+                    workflowObject.setStoreElement(pageRef);
+                    // add referenced elements from pageref
+                    releaseObjects.addAll(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia));
+                    // add the pageref (and page)
+                    if ((pageRef.getPage()).getReleaseStatus() != IDProvider.RELEASED) {
+                        releaseObjects.add(pageRef.getPage());
+                    }
+                    releaseObjects.add(pageRef);
+                }
+                // do release
+                releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(false);
+            } else if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
                 // do release of referenced media if checkbox is checked
                 releaseObjects.addAll(workflowObject.getRefObjectsFromEntity(releaseWithMedia));
                 releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(false);
@@ -114,11 +133,6 @@ public class WfReleaseExecutable extends WorkflowExecutable {
             }
         }
         return true;
-    }
-
-    private boolean isNotFailed(WorkflowScriptContext workflowScriptContext) {
-        final Object wfDoFail = getCustomAttribute(workflowScriptContext, "wfDoFail");
-        return wfDoFail == null || WorkflowConstants.FALSE.equals(wfDoFail);
     }
 
 }

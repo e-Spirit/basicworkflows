@@ -19,6 +19,7 @@
  */
 package com.espirit.moddev.basicworkflows.delete;
 
+import com.espirit.moddev.basicworkflows.util.Dialog;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 
@@ -43,9 +44,7 @@ import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
 import de.espirit.firstspirit.access.store.sitestore.StartNode;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
-import de.espirit.firstspirit.agency.OperationAgent;
 import de.espirit.firstspirit.server.storemanagement.ReleaseFailedException;
-import de.espirit.firstspirit.ui.operations.RequestOperation;
 import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
@@ -323,15 +322,13 @@ public class DeleteObject {
                         }
                     }
                 } catch (ReleaseFailedException e) {
-                    OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-                    RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-                    if (requestOperation != null) {
-                        ResourceBundle.clearCache();
-                        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+                    Dialog dialog = new Dialog(workflowScriptContext);
 
-                        requestOperation.setTitle(bundle.getString("permissionIssues"));
-                        requestOperation.perform(bundle.getString("missingPermissions"));
-                    }
+                    ResourceBundle.clearCache();
+                    final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+
+                    dialog.showError(bundle.getString("permissionIssues"), bundle.getString("missingPermissions"));
+
                     Logging.logError("Exception during Release of " + idProv, e, LOGGER);
                 } catch (Exception e) {
                     Logging.logError("Exception during Release of " + idProv, e, LOGGER);

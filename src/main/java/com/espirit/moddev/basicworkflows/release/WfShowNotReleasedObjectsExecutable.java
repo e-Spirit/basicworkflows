@@ -20,14 +20,15 @@
 
 package com.espirit.moddev.basicworkflows.release;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -37,31 +38,39 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfShowNotReleasedObjectsExecutable extends WorkflowExecutable {
+public class WfShowNotReleasedObjectsExecutable extends AbstractWorkflowExecutable {
 
     /**
      * The logging class to use.
      */
     public static final Class<?> LOGGER = WfShowNotReleasedObjectsExecutable.class;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
+        final WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
 
-        Map<String, IDProvider.UidType>
+        final StringBuilder messageBuilder = new StringBuilder();
+
+        final Map<String, IDProvider.UidType>
             notReleasedElements =
-            (Map<String, IDProvider.UidType>) workflowScriptContext.getSession().get("wfNotReleasedElements");
-        StringBuilder notReleased = new StringBuilder(bundle.getString("releaseObjects")).append(":\n\n");
-        for (Map.Entry<String, IDProvider.UidType> entry : notReleasedElements.entrySet()) {
-            notReleased.append(entry.getKey()).append("\n");
+            readMapFromSession(workflowScriptContext, WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
+        final boolean brokenReferences = readBooleanFromSession(workflowScriptContext, WorkflowConstants.WF_BROKEN_REFERENCES);
+
+        final String releaseObjectsLabel = bundle.getString("releaseObjects");
+        renderMessage(messageBuilder, notReleasedElements, releaseObjectsLabel);
+
+        if (mapContainsItems(notReleasedElements) && brokenReferences) {
+            messageBuilder.append("\n\n");
         }
 
-        showDialog(workflowScriptContext, bundle.getString("notReleasedObjects") + ":\n\n", notReleased.toString());
+        if (brokenReferences) {
+            final String brokenReferencesLabel = bundle.getString("brokenReferences");
+            messageBuilder.append(brokenReferencesLabel);
+        }
+
+        showDialog(workflowScriptContext, bundle.getString("conflicts") + ":\n\n", messageBuilder.toString());
 
         try {
             workflowScriptContext.doTransition("trigger_check_not_released_objects");
@@ -71,6 +80,29 @@ public class WfShowNotReleasedObjectsExecutable extends WorkflowExecutable {
         }
 
         return true;
+    }
+
+    private static boolean readBooleanFromSession(final WorkflowScriptContext workflowScriptContext, final String key) {
+        final Boolean value = readObjectFromSession(workflowScriptContext, key);
+        return value != null && value;
+    }
+
+    private static boolean mapContainsItems(final Map<String, IDProvider.UidType> map) {
+        return map != null && !map.isEmpty();
+    }
+
+    private static Map<String, IDProvider.UidType> readMapFromSession(final WorkflowScriptContext workflowScriptContext, final String key) {
+        final Map<String, IDProvider.UidType> map = readObjectFromSession(workflowScriptContext, key);
+        return map == null ? Collections.<String, IDProvider.UidType>emptyMap() : map;
+    }
+
+    private static void renderMessage(StringBuilder message, Map<String, IDProvider.UidType> elements, String label) {
+        if (elements != null && !elements.isEmpty()) {
+            message.append(label).append(":\n\n");
+            for (Map.Entry<String, IDProvider.UidType> entry : elements.entrySet()) {
+                message.append(entry.getKey()).append("\n");
+            }
+        }
     }
 
 }

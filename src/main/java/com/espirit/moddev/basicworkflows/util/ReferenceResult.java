@@ -20,6 +20,8 @@
 
 package com.espirit.moddev.basicworkflows.util;
 
+import de.espirit.common.base.Logging;
+
 /**
  * Class to store information if all release conditions are met.
  *
@@ -27,20 +29,50 @@ package com.espirit.moddev.basicworkflows.util;
  * @since 1.0
  */
 public class ReferenceResult {
-    /** This variable determines if only media is referenced. */
+
+    /**
+     * This variable determines if only media is referenced.
+     */
     private boolean onlyMedia;
-    /** This variable determines if all referenced non media elements are released. */
+    /**
+     * This variable determines if all referenced non media elements are released.
+     */
     private boolean notMediaReleased;
-    /** This variable determines if all referenced elements are released. */
+    /**
+     * This variable determines if all referenced elements are released.
+     */
     private boolean allObjectsReleased;
+    /**
+     * This variable determines if there are broken references.
+     */
+    private boolean noBrokenReferences;
 
     /**
      * Constructor for ReferenceResult.
      */
     public ReferenceResult() {
-        this.onlyMedia = true;
-        this.notMediaReleased = true;
-        this.allObjectsReleased = true;
+        onlyMedia = true;
+        notMediaReleased = true;
+        allObjectsReleased = true;
+        noBrokenReferences = true;
+    }
+
+    /**
+     * Is broken references.
+     *
+     * @return the boolean
+     */
+    public boolean isNoBrokenReferences() {
+        return noBrokenReferences;
+    }
+
+    /**
+     * Sets broken references.
+     *
+     * @param noBrokenReferences the broken references
+     */
+    public void setNoBrokenReferences(boolean noBrokenReferences) {
+        this.noBrokenReferences = noBrokenReferences;
     }
 
     /**
@@ -95,5 +127,29 @@ public class ReferenceResult {
      */
     public void setAllObjectsReleased(boolean allObjectsReleased) {
         this.allObjectsReleased = allObjectsReleased;
+    }
+
+    /**
+     * Checks if there are any release issues.
+     *
+     * @param releaseWithMedia the release with media
+     * @return true if it has release issues
+     */
+    public boolean hasReleaseIssues(boolean releaseWithMedia) {
+        boolean allReleased = false;
+
+        // check result if can be released
+        if (isOnlyMedia() && releaseWithMedia) {
+            Logging.logWarning("Is only media and checked", getClass());
+            allReleased = true;
+        } else if (isNotMediaReleased() && releaseWithMedia) {
+            Logging.logWarning("All non media released and checked", getClass());
+            allReleased = true;
+        } else if (isAllObjectsReleased() && !releaseWithMedia) {
+            Logging.logWarning("Everything released and not checked", getClass());
+            allReleased = true;
+        }
+
+        return !(allReleased && isNoBrokenReferences());
     }
 }

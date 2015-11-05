@@ -33,7 +33,7 @@ import de.espirit.firstspirit.workflow.WorkflowGroup;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -52,13 +52,10 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     private BaseContext context;
     public static final Class<?> LOGGER = BasicWorkflowStatusProvider.class;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public State getReleaseState(final IDProvider element) {
         State releaseStateResult = State.RELEASED;
-        Map<State, Boolean> releaseStatus = new HashMap<State, Boolean>();
+        EnumMap<State, Boolean> releaseStatus = new EnumMap<State, Boolean>(State.class);
 
         // check workflow element status
         if (isNotReleased(element)) {
@@ -109,7 +106,7 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
      * @param state  the State to look for in the Map
      * @return true if the State is contained in the State Map
      */
-    private boolean hasState(final Map<State, Boolean> states, final State state) {
+    private static boolean hasState(final Map<State, Boolean> states, final State state) {
         return states.get(state) != null && states.get(state);
     }
 
@@ -119,13 +116,10 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
      * @param element the element
      * @return true if the element is released
      */
-    private boolean isNotReleased(final IDProvider element) {
+    private static boolean isNotReleased(final IDProvider element) {
         return element.isReleaseSupported() && element.getReleaseStatus() != IDProvider.RELEASED;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<WorkflowGroup> getWorkflowGroups(final IDProvider element) {
         final List<WorkflowGroup> collectedWorkflowGroups = new ArrayList<WorkflowGroup>();
@@ -152,17 +146,11 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         return collectedWorkflowGroups;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void setUp(BaseContext baseContext) {
         this.context = baseContext;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void tearDown() {
         //not needed here

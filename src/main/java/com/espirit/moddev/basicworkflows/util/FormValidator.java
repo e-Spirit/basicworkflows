@@ -25,10 +25,17 @@ import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
-import de.espirit.firstspirit.agency.*;
+import de.espirit.firstspirit.agency.BrokerAgent;
+import de.espirit.firstspirit.agency.FormValidationReport;
+import de.espirit.firstspirit.agency.LanguageAgent;
+import de.espirit.firstspirit.agency.MultiFormValidationReport;
+import de.espirit.firstspirit.agency.SpecialistsBroker;
+import de.espirit.firstspirit.agency.ValidationAgent;
 import de.espirit.firstspirit.store.access.globalstore.ProjectPropertiesImpl;
 import de.espirit.or.schema.Entity;
+
 import org.jetbrains.annotations.Nullable;
+
 import java.util.Collection;
 import java.util.Set;
 
@@ -39,7 +46,10 @@ import java.util.Set;
  * @since 1.0
  */
 public class FormValidator {
-    /** The workflowScriptContext from the workflow. */
+
+    /**
+     * The workflowScriptContext from the workflow.
+     */
     private WorkflowScriptContext workflowScriptContext;
 
     /**
@@ -66,7 +76,7 @@ public class FormValidator {
      * Convenience method to check if validation of gui form (of an Entity) is successful.
      *
      * @param content2 The Content2 object of the entity.
-     * @param entity The Entity to check.
+     * @param entity   The Entity to check.
      * @return The error String of null.
      */
     public String isValid(Content2 content2, Entity entity) {
@@ -75,9 +85,10 @@ public class FormValidator {
 
     /**
      * Main method to check if validation of gui form is successful.
+     *
      * @param idProvider The IDProvider to check.
-     * @param content2 The Content2 object of the entity.
-     * @param entity The Entity to check.
+     * @param content2   The Content2 object of the entity.
+     * @param entity     The Entity to check.
      * @return The error String or null.
      */
     private String isValid(@Nullable IDProvider idProvider, @Nullable Content2 content2, @Nullable Entity entity) {
@@ -91,17 +102,19 @@ public class FormValidator {
         String element = "";
         String validationResult = null;
 
-        if(entity != null && content2 != null) {
-            validationReportsRel = validationAgent.validate(content2.getDataset(entity).getFormData(), languageAgent.getLanguages(), ValidationAgent.ValidationScope.RELEASE);
+        if (entity != null && content2 != null) {
+            validationReportsRel =
+                validationAgent
+                    .validate(content2.getDataset(entity).getFormData(), languageAgent.getLanguages(), ValidationAgent.ValidationScope.RELEASE);
             // element uid for error msg
             element = "\nContent2: " + content2.getUid() + "\n";
         } else {
             validationReportsRel = validationAgent.validate(idProvider, ValidationAgent.ValidationScope.RELEASE);
             if (idProvider != null) {
-                if(idProvider instanceof Section) {
+                if (idProvider instanceof Section) {
                     // section has no uid so show page instead
                     element = "\n" + idProvider.getParent().getParent().getElementType() + ": " + idProvider.getParent().getParent().getUid() + "\n";
-                } else if(idProvider instanceof ProjectPropertiesImpl) {
+                } else if (idProvider instanceof ProjectPropertiesImpl) {
                     // element uid for error msg
                     element = "\n" + idProvider.getElementType() + "\n";
                 } else {
@@ -111,29 +124,29 @@ public class FormValidator {
             }
         }
 
-        if(!validationReportsRel.isValid()) {
+        if (!validationReportsRel.isValid()) {
             StringBuilder errorMsg = new StringBuilder();
             errorMsg.append(element);
             FormValidationReport metaProblems = validationReportsRel.getProblemsForMetaData();
-            if(metaProblems != null) {
+            if (metaProblems != null) {
                 Set<String> gadgets = metaProblems.getGadgets();
                 // meta input components
-                for(String gadget : gadgets) {
+                for (String gadget : gadgets) {
                     Collection<String> messages = metaProblems.getMessages(gadget, workflowScriptContext.getProject().getMasterLanguage());
-                    for(String message : messages) {
+                    for (String message : messages) {
                         errorMsg.append("  ").append(gadget).append(" (META) = ").append(message).append("\n");
                     }
                 }
             }
             // input components
-            Collection<Language> langs = validationReportsRel.getLanguages();
-            for(Language lang : langs) {
+            Collection<Language> langs = validationReportsRel.getLanguages(workflowScriptContext);
+            for (Language lang : langs) {
                 FormValidationReport problems = validationReportsRel.getProblems(lang);
-                if(problems != null) {
+                if (problems != null) {
                     Set<String> gadgets = problems.getGadgets();
-                    for(String gadget : gadgets) {
+                    for (String gadget : gadgets) {
                         Collection<String> messages = problems.getMessages(gadget, lang);
-                        for(String message : messages) {
+                        for (String message : messages) {
                             errorMsg.append("  ").append(gadget).append(" (").append(lang).append(") ").append(" = ").append(message).append("\n");
                         }
                     }

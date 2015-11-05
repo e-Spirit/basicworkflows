@@ -20,14 +20,13 @@
 
 package com.espirit.moddev.basicworkflows.delete;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
+import com.espirit.moddev.basicworkflows.util.Dialog;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
-import de.espirit.firstspirit.agency.OperationAgent;
-import de.espirit.firstspirit.ui.operations.RequestOperation;
 
 import java.util.List;
 import java.util.Map;
@@ -39,21 +38,14 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WfDeleteTestExecutable extends WorkflowExecutable {
+public class WfDeleteTestExecutable extends AbstractWorkflowExecutable {
 
     /**
      * The logging class to use.
      */
     public static final Class<?> LOGGER = WfDeleteTestExecutable.class;
 
-    /**
-     * Name for variable that determines if the test should fail.
-     */
-    public static final String TESTFAIL = "wfDoTestFail";
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
@@ -82,7 +74,7 @@ public class WfDeleteTestExecutable extends WorkflowExecutable {
             try {
                 // check test case or skip if wfDoTestFail is set
                 if (isNotFailedTest(workflowScriptContext)) {
-                    List<List> lockedObjects = (List<List>) workflowScriptContext.getSession().get("wfLockedObjects");
+                    List<List> lockedObjects = readObjectFromSession(workflowScriptContext, "wfLockedObjects");
                     StringBuilder notReleased = new StringBuilder(bundle.getString("objectsLocked")).append(":\n\n");
                     for (List lockedObject : lockedObjects) {
                         String elementType = (String) lockedObject.get(0);
@@ -95,22 +87,16 @@ public class WfDeleteTestExecutable extends WorkflowExecutable {
                 workflowScriptContext.doTransition("trigger_test_failed");
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Test Delete failed!", e, LOGGER);
-                final String suppressDialog = (String) workflowScriptContext.getSession().get("wfSuppressDialog"); // set in integration tests
+                // set in integration tests
+                final String suppressDialog = readObjectFromSession(workflowScriptContext, "wfSuppressDialog");
                 if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
                     // show error message
-                    OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-                    RequestOperation requestOperation = operationAgent.getOperation(RequestOperation.TYPE);
-                    requestOperation.setTitle(bundle.getString(WorkflowConstants.ERROR_MSG));
-                    requestOperation.perform(bundle.getString("testDeleteFailed"));
+                    Dialog dialog = new Dialog(workflowScriptContext);
+                    dialog.showError(bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("testDeleteFailed"));
                 }
             }
         }
         return true;
-    }
-
-    private boolean isNotFailedTest(WorkflowScriptContext workflowScriptContext) {
-        return getCustomAttribute(workflowScriptContext, TESTFAIL) == null || WorkflowConstants.FALSE.equals(
-            getCustomAttribute(workflowScriptContext, TESTFAIL));
     }
 
 }

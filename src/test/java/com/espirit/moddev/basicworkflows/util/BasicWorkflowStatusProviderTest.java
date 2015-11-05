@@ -1,6 +1,6 @@
 /*
  * **********************************************************************
- * basicworkflows
+ * BasicWorkflows
  * %%
  * Copyright (C) 2012 - 2015 e-Spirit AG
  * %%
@@ -38,7 +38,7 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
-import java.lang.Boolean;import java.lang.Exception;import java.lang.NullPointerException;import java.util.Arrays;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -47,7 +47,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -163,38 +163,38 @@ public class BasicWorkflowStatusProviderTest {
 
         List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(element);
 
-        assertThat(workflowGroupList, hasSize(1));
+        assertThat("Expect a list", workflowGroupList, hasSize(1));
 
         WorkflowGroup workflowGroup = workflowGroupList.get(0);
 
-        assertThat(workflowGroup.getElements(), hasSize(1));
-        assertThat(workflowGroup.getElements(), contains(sameInstance(element)));
+        assertThat("Expect a list", workflowGroup.getElements(), hasSize(1));
+        assertThat("Expect same instance in list", workflowGroup.getElements(), contains(sameInstance(element)));
 
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, Locale.GERMANY);
 
         if (element instanceof PageRef || element instanceof Page) {
-            assertThat(workflowGroup.getDisplayName(), is(bundle.getString("pageReference")));
+            assertThat("Expect a specific value", workflowGroup.getDisplayName(), is(bundle.getString("pageReference")));
         }
 
         if (element instanceof DocumentGroup) {
-            assertThat(workflowGroup.getDisplayName(), is(bundle.getString("documentGroup")));
+            assertThat("Expect a specific value", workflowGroup.getDisplayName(), is(bundle.getString("documentGroup")));
         }
 
         if (element instanceof Dataset) {
-            assertThat(workflowGroup.getDisplayName(), is(bundle.getString("dataset")));
+            assertThat("Expect a specific value", workflowGroup.getDisplayName(), is(bundle.getString("dataset")));
         }
     }
 
     @Test
     public void testGetWorkflowGroupsEmptyList() {
         List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(mock(IDProvider.class));
-        assertThat(workflowGroupList, hasSize(0));
+        assertThat("Expect an empty list", workflowGroupList, hasSize(0));
     }
 
     @Test
     public void testGetWorkflowGroupsEmptyListNullElement() {
         List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(null);
-        assertThat(workflowGroupList, hasSize(0));
+        assertThat("Expect an empty list", workflowGroupList, hasSize(0));
     }
 
     @Test(expected = NullPointerException.class)

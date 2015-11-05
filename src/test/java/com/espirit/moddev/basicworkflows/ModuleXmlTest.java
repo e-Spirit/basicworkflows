@@ -1,6 +1,6 @@
 /*
  * **********************************************************************
- * basicworkflows
+ * BasicWorkflows
  * %%
  * Copyright (C) 2012 - 2015 e-Spirit AG
  * %%
@@ -59,6 +59,7 @@ public class ModuleXmlTest {
         File file = new File(ClassLoader.getSystemClassLoader().getResource("module.xml").toURI());
         String content = FileUtils.readFileToString(file);
         moduleXML = createXMLfromString(content);
+
         pomProperties = new Properties();
         pomProperties.load(ClassLoader.getSystemClassLoader().getResourceAsStream("moduleTest.properties"));
     }
@@ -73,47 +74,46 @@ public class ModuleXmlTest {
 
     @Test
     public void testIfThereIsAVersion() throws Exception {
-        assertThat(moduleXML, hasXPath("/module/version"));
+        assertThat("Expect a specific path", moduleXML, hasXPath("/module/version"));
     }
 
     @Test
     public void testIfVersionIsEqualToPomVersion() throws Exception {
         String expectedVersion = pomProperties.getProperty("version");
-        assertThat(moduleXML, hasXPath("/module/version", equalTo(expectedVersion)));
+        assertThat("Expect a specific value", moduleXML, hasXPath("/module/version", equalTo(expectedVersion)));
     }
 
     @Test
     public void testIfThereIsADisplayName() throws Exception {
-        assertThat(moduleXML, hasXPath("/module/displayname"));
+        assertThat("Expect a specific path", moduleXML, hasXPath("/module/displayname"));
     }
 
     @Test
     public void testIfDisplayNameIsEqualToBasicWorkflows() throws Exception {
         String expectedName = pomProperties.getProperty("displayName");
-        //System.out.println("Name " + expectedName);
-        assertThat(moduleXML, hasXPath("/module/displayname", equalTo(expectedName)));
+        assertThat("Expect a specific value", moduleXML, hasXPath("/module/displayname", equalTo(expectedName)));
     }
 
     @Test
     public void testIfThereIsAName() throws Exception {
-        assertThat(moduleXML, hasXPath("/module/name"));
+        assertThat("Expect a specific path", moduleXML, hasXPath("/module/name"));
     }
 
     @Test
     public void testIfNameIsEqualTobasicworkflows() throws Exception {
         String expectedName = pomProperties.getProperty("name");
-        assertThat(moduleXML, hasXPath("/module/name", equalTo(expectedName)));
+        assertThat("Expect a specific value", moduleXML, hasXPath("/module/name", equalTo(expectedName)));
     }
 
     @Test
     public void testIfThereIsADescription() throws Exception {
-        assertThat(moduleXML, hasXPath("/module/description"));
+        assertThat("Expect a specific path", moduleXML, hasXPath("/module/description"));
     }
 
     @Test
     public void testIfDescriptionIsEqualToArtifactId() throws Exception {
         String expectedDescription = pomProperties.getProperty("description");
-        assertThat(moduleXML, hasXPath("/module/description", equalTo(expectedDescription)));
+        assertThat("Expect a specific value", moduleXML, hasXPath("/module/description", equalTo(expectedDescription)));
     }
 
     /**

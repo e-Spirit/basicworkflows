@@ -20,8 +20,8 @@
 
 package com.espirit.moddev.basicworkflows.delete;
 
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-import com.espirit.moddev.basicworkflows.util.WorkflowExecutable;
 
 import de.espirit.firstspirit.access.store.StoreElement;
 import de.espirit.firstspirit.access.store.StoreElementFolder;
@@ -38,7 +38,7 @@ import static de.espirit.common.base.Logging.logError;
  * workflow step. <p/> Folder   -&gt; workflow transition "{@value #TRANSITION_FOLDER}" is selected<br/> Other    -&gt; workflow transition "{@value
  * #TRANSITION_ELEMENT}" is selected<br/>
  */
-public class WfBranchIfFolderExecutable extends WorkflowExecutable {
+public class WfBranchIfFolderExecutable extends AbstractWorkflowExecutable {
 
     public static final Class<?> LOGGER = WfBranchIfFolderExecutable.class;
 
@@ -87,7 +87,7 @@ public class WfBranchIfFolderExecutable extends WorkflowExecutable {
      * @param element the workflow element
      * @return true if the given element is a Folder
      */
-    private boolean isFolder(StoreElement element) {
+    private static boolean isFolder(StoreElement element) {
         return element instanceof StoreElementFolder && !(element instanceof Content2);
     }
 }
