@@ -435,8 +435,8 @@ public class WorkflowObject {
             StoreElement elem = storeElement;
             if (elem.getParent() != null) {
                 elem = elem.getParent();
-                if (isChanged((IDProvider) elem.getParent())) {
-                    references.add(elem.getParent());
+                if (isChanged((IDProvider) elem)) {
+                    references.add(elem);
                 }
             }
         }
