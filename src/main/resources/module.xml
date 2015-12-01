@@ -83,7 +83,7 @@
             <class>com.espirit.moddev.basicworkflows.util.BasicWorkflowStatusProvider</class>
         </public>
         <!-- Web application that provides all module classes and support files to the WebClient run-time. -->
-        <web-app>
+        <web-app scopes="global,project">
             <name>${project.displayName}_ContentCreator_Library</name>
             <web-xml>web/web.xml</web-xml>
             <web-resources>

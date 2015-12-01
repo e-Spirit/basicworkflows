@@ -20,12 +20,7 @@
 
 package com.espirit.moddev.basicworkflows.release;
 
-import com.espirit.moddev.basicworkflows.util.Dialog;
-import com.espirit.moddev.basicworkflows.util.FormValidator;
-import com.espirit.moddev.basicworkflows.util.FsLocale;
-import com.espirit.moddev.basicworkflows.util.StoreUtil;
-import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-
+import com.espirit.moddev.basicworkflows.util.*;
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.AccessUtil;
 import de.espirit.firstspirit.access.ReferenceEntry;
@@ -53,12 +48,7 @@ import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.QueryAgent;
 import de.espirit.or.schema.Entity;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.util.*;
 
 /**
  * This class is used to release IDProvider/Entity objects.
@@ -242,8 +232,9 @@ public class ReleaseObject {
                                 }
                                 //release(IDProvider releaseStartNode, boolean checkOnly, boolean releaseParentPath, boolean recursive, IDProvider.DependentReleaseType dependentType)
                                 if (idProvider instanceof PageRef) {
-                                    handle = AccessUtil.release(idProvider, checkOnly, true, false,
-                                                                IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
+                                    // in order to decide if a pageref can be released, one has to check if the referenced page exists
+                                    IDProvider.DependentReleaseType releaseType = checkOnly ? IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY : IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE;
+                                    handle = AccessUtil.release(idProvider, checkOnly, true, false, releaseType);
                                 } else if (idProvider instanceof PageRefFolder) {
                                     handle = AccessUtil.release(idProvider, checkOnly, true, false,
                                                                 IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);

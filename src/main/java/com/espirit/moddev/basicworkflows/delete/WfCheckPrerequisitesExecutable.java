@@ -23,15 +23,10 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.Task;
-import de.espirit.firstspirit.access.store.ElementDeletedException;
-import de.espirit.firstspirit.access.store.IDProvider;
-import de.espirit.firstspirit.access.store.LockException;
-import de.espirit.firstspirit.access.store.StoreElement;
-import de.espirit.firstspirit.access.store.StoreElementFilter;
+import de.espirit.firstspirit.access.store.*;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
 import de.espirit.firstspirit.access.store.globalstore.GCAFolder;

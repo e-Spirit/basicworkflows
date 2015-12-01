@@ -23,7 +23,6 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.FsException;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-
 import de.espirit.common.TypedFilter;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
@@ -43,11 +42,7 @@ import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
-import de.espirit.firstspirit.access.store.templatestore.Query;
-import de.espirit.firstspirit.access.store.templatestore.Schema;
-import de.espirit.firstspirit.access.store.templatestore.TableTemplate;
-import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
-import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.access.store.templatestore.*;
 import de.espirit.firstspirit.store.access.globalstore.GlobalContentAreaImpl;
 import de.espirit.or.schema.Entity;
 

@@ -22,19 +22,11 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.Dialog;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.AccessUtil;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ServerActionHandle;
-import de.espirit.firstspirit.access.store.DeleteProgress;
-import de.espirit.firstspirit.access.store.ElementDeletedException;
-import de.espirit.firstspirit.access.store.IDProvider;
-import de.espirit.firstspirit.access.store.LockException;
-import de.espirit.firstspirit.access.store.ReleaseProgress;
-import de.espirit.firstspirit.access.store.Store;
-import de.espirit.firstspirit.access.store.StoreElement;
-import de.espirit.firstspirit.access.store.StoreElementFilter;
+import de.espirit.firstspirit.access.store.*;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.pagestore.Page;
@@ -48,13 +40,7 @@ import de.espirit.firstspirit.server.storemanagement.ReleaseFailedException;
 import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.util.*;
 
 import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
 

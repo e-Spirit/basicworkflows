@@ -23,7 +23,6 @@ package com.espirit.moddev.basicworkflows.release;
 import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
