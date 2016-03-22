@@ -24,6 +24,7 @@ import com.espirit.moddev.basicworkflows.util.FsException;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.ReferenceResult;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
@@ -49,7 +50,11 @@ import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.or.schema.Entity;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
 
 /**
  * This class provides methods to get the references of the workflow object and store them in the session.
@@ -295,7 +300,7 @@ public class WorkflowObject {
     }
 
     private static Object getReferencedObjectFrom(final ReferenceEntry object) {
-        return ((ReferenceEntry) object).getReferencedObject();
+        return object.getReferencedObject();
     }
 
     private static void checkBrokenReferences(final Object object, final ReferenceResult referenceResult) {

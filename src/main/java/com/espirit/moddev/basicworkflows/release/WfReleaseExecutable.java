@@ -22,6 +22,7 @@ package com.espirit.moddev.basicworkflows.release;
 
 import com.espirit.moddev.basicworkflows.util.*;
 import de.espirit.common.base.Logging;
+import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
@@ -68,8 +69,9 @@ public class WfReleaseExecutable extends AbstractWorkflowExecutable {
                 for (String pageRefUid : releasePageRefUids) {
                     PageRef pageRef = new StoreUtil(workflowScriptContext).loadPageRefByUid(pageRefUid);
                     workflowObject.setStoreElement(pageRef);
-                    // add referenced elements from pageref
-                    releaseObjects.addAll(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia));
+                    // add referenced elements from pageref excluding the pagerefs retrieved from the session since they will be added afterwards
+                    addReferencesExcludingPageRefsFromSession(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia), releasePageRefUids,
+                                                              releaseObjects);
                     // add the pageref (and page)
                     if ((pageRef.getPage()).getReleaseStatus() != IDProvider.RELEASED) {
                         releaseObjects.add(pageRef.getPage());
@@ -128,6 +130,29 @@ public class WfReleaseExecutable extends AbstractWorkflowExecutable {
             }
         }
         return true;
+    }
+
+    /**
+     * Adds the elements from objectsToAdd to the resultList list excluding the elements listed in objectsToExclude
+     *
+     * @param objectsToAdd The objects to release
+     * @param objectsToExclude Uids of objects to exclude from list
+     * @param resultList The resulting list of objects to release
+     */
+    private void addReferencesExcludingPageRefsFromSession(List<Object> objectsToAdd, List<String> objectsToExclude,
+                                                           List<Object> resultList) {
+        for (Object object : objectsToAdd) {
+            if (object instanceof ReferenceEntry) {
+                ReferenceEntry refEntry = (ReferenceEntry) object;
+                if (refEntry.getReferencedElement() instanceof PageRef) {
+                    PageRef pageRef = (PageRef) refEntry.getReferencedElement();
+                    if (objectsToExclude.contains(pageRef.getUid())) {
+                        continue;
+                    }
+                }
+            }
+            resultList.add(object);
+        }
     }
 
 }

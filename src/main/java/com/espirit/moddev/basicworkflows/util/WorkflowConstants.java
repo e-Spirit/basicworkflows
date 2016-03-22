@@ -86,4 +86,8 @@ public interface WorkflowConstants {
     String WF_NOT_RELEASED_ELEMENTS = "wfNotReleasedElements";
 
     String WF_BROKEN_REFERENCES = "wfBrokenReferences";
+
+    String IMAGE_HAS_REFERENCES = "wfImageHasReferences";
+
+    String IMAGE_FOLDER_HAS_REFERENCES = "wfImageFolderHasReferences";
 }

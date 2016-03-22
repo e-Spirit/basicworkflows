@@ -23,10 +23,16 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
+import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.Task;
-import de.espirit.firstspirit.access.store.*;
+import de.espirit.firstspirit.access.store.ElementDeletedException;
+import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.LockException;
+import de.espirit.firstspirit.access.store.StoreElement;
+import de.espirit.firstspirit.access.store.StoreElementFilter;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
 import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
@@ -76,71 +82,23 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
         //show warning dialog if prerequisites are not met and wfFolderCheckFail is not set
         if (getCustomAttribute(workflowScriptContext, "wfCheckPrerequisitesFail") == null) {
             StoreElement storeElement = workflowScriptContext.getElement();
-            String message = "";
-
-            // workflow handling
-            boolean abortWorkflow = false;
-            IDProvider element = (IDProvider) storeElement;
-            Workflow executedWorkflow = workflowScriptContext.getTask().getWorkflow();
 
             // check if workflow is executed on a workflow and on itself
-            if (element instanceof Workflow) {
-                boolean isExecutedWorkflow = isExecutedWorkflow(element, executedWorkflow);
-                if (isExecutedWorkflow) {
-                    Logging.logDebug("The workflow can't delete itself", LOGGER);
-                    showDialog(workflowScriptContext, bundle.getString("deleteWorkflow"), bundle.getString("deleteDeleteItselfNotPossible"));
-                    abortWorkflow = true;
-                } else {
-                    // query and close (if confirmed) all open workflow instances
-                    QueryAgent queryAgent = workflowScriptContext.requireSpecialist(QueryAgent.TYPE);
-                    Iterable<IDProvider> searchResults = queryAgent.answer("fs.workflow = *");
-                    Map<Task, IDProvider> openInstances = getOpenInstances(element, searchResults);
-
-                    if (!openInstances.isEmpty()) {
-                        StringBuilder dialogMessage = new StringBuilder(bundle.getString("closeWorkflowInstances"));
-                        for (Map.Entry<Task, IDProvider> entry : openInstances.entrySet()) {
-                            dialogMessage.append("\n- ").append(entry.getValue().getUid());
-                        }
-                        boolean
-                            confirmCloseTask =
-                            showQuestionDialog(workflowScriptContext, bundle.getString("workflowInstances"), dialogMessage.toString());
-
-                        if (confirmCloseTask) {
-                            closeOpenInstances(openInstances);
-                        } else {
-                            abortWorkflow = true;
-                        }
-                    } else {
-                        Logging.logDebug("No open workflow instances found", LOGGER);
-                    }
-
-                }
-            }
+            boolean abortWorkflow =
+                decideToAbort(workflowScriptContext, bundle, (IDProvider) storeElement, workflowScriptContext.getTask().getWorkflow());
 
             // check if folder has children
             final StoreElementFilter filter = on(TemplateFolder.class, Template.class, PageFolder.class, Page.class, PageRefFolder.class,
                                                  PageRef.class, DocumentGroup.class, ContentFolder.class, Content2.class, MediaFolder.class,
                                                  Media.class, GCAPage.class,
                                                  GCAFolder.class);
-            if (!abortWorkflow &&
-                (storeElement.getChildren(filter, true).getFirst() == null
-                 || showQuestionDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING), bundle.getString("hasChildren")))) {
 
-                // check if last element in pageref-folder is to be deleted
-                if ((storeElement instanceof PageRefFolder || storeElement instanceof PageRef
-                     || storeElement instanceof DocumentGroup)
-                    && !workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+            if (!abortWorkflow && (hasNoChildren(storeElement, filter) || askUserToDeleteAnyway(workflowScriptContext, bundle))) {
 
-                    final StoreElementFilter sitestoreFilter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
-                    Iterator iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
-                    iter.next();
-                    if (!iter.hasNext()) {
-                        if (message.length() == 0) {
-                            message += "\n\n";
-                        }
-                        message += bundle.getString("lastElement") + "\n";
-                    }
-                }
+                //Addition for new media management since FS 5.2
+                abortIfCCAndImageWithReferences(workflowScriptContext);
+
+                String message = createMessage(workflowScriptContext, bundle, storeElement);
 
                 if (message.length() > 0) {
                     showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING), message);
@@ -167,6 +125,111 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
             }
         }
         return true;
+    }
+
+    private boolean askUserToDeleteAnyway(final WorkflowScriptContext workflowScriptContext, final ResourceBundle bundle) {
+        return showQuestionDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING),
+                                  bundle.getString("hasChildren"));
+    }
+
+    private static boolean hasNoChildren(final StoreElement storeElement, final StoreElementFilter filter) {
+        return storeElement.getChildren(filter, true).getFirst() == null;
+    }
+
+    private String createMessage(final WorkflowScriptContext workflowScriptContext, final ResourceBundle bundle, final StoreElement storeElement) {
+        String message = "";
+        // check if last element in pageref-folder is to be deleted
+        if ((storeElement instanceof PageRefFolder || storeElement instanceof PageRef
+             || storeElement instanceof DocumentGroup)
+            && !workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
+
+            final StoreElementFilter sitestoreFilter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
+            Iterator iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
+            iter.next();
+            if (!iter.hasNext()) {
+                if (message.length() == 0) {
+                    message += "\n\n";
+                }
+                message += bundle.getString("lastElement") + "\n";
+            }
+        }
+        return message;
+    }
+
+    private boolean decideToAbort(final WorkflowScriptContext workflowScriptContext, final ResourceBundle bundle, final IDProvider element,
+                                  final Workflow executedWorkflow) {
+        boolean abortWorkflow = false;
+        if (element instanceof Workflow) {
+            boolean isExecutedWorkflow = isExecutedWorkflow(element, executedWorkflow);
+            if (isExecutedWorkflow) {
+                Logging.logDebug("The workflow can't delete itself", LOGGER);
+                showDialog(workflowScriptContext, bundle.getString("deleteWorkflow"), bundle.getString("deleteDeleteItselfNotPossible"));
+                abortWorkflow = true;
+            } else {
+                // query and close (if confirmed) all open workflow instances
+                QueryAgent queryAgent = workflowScriptContext.requireSpecialist(QueryAgent.TYPE);
+                Iterable<IDProvider> searchResults = queryAgent.answer("fs.workflow = *");
+                Map<Task, IDProvider> openInstances = getOpenInstances(element, searchResults);
+
+                if (!openInstances.isEmpty()) {
+                    StringBuilder dialogMessage = createDialogMessage(bundle, openInstances);
+                    if (showQuestionDialog(workflowScriptContext, bundle.getString("workflowInstances"), dialogMessage.toString())) {
+                        closeOpenInstances(openInstances);
+                    } else {
+                        abortWorkflow = true;
+                    }
+                } else {
+                    Logging.logDebug("No open workflow instances found", LOGGER);
+                }
+
+            }
+        }
+        return abortWorkflow;
+    }
+
+    private StringBuilder createDialogMessage(final ResourceBundle bundle, final Map<Task, IDProvider> openInstances) {
+        StringBuilder dialogMessage = new StringBuilder(bundle.getString("closeWorkflowInstances"));
+        for (Map.Entry<Task, IDProvider> entry : openInstances.entrySet()) {
+            dialogMessage.append("\n- ").append(entry.getValue().getUid());
+        }
+        return dialogMessage;
+    }
+
+    private boolean abortIfCCAndImageWithReferences(final WorkflowScriptContext workflowScriptContext) {
+        if (workflowScriptContext.is(BaseContext.Env.WEBEDIT) && (workflowScriptContext.getWorkflowable() instanceof Media || workflowScriptContext.getWorkflowable() instanceof MediaFolder)) {
+            StoreElement element = (StoreElement) workflowScriptContext.getWorkflowable();
+            final ReferenceEntry[] incomingReferences = element.getIncomingReferences();
+            final boolean abort = incomingReferences != null && incomingReferences.length > 0;
+            if (abort) {
+                displayMessageWithReferences(workflowScriptContext, element, incomingReferences);
+            }
+            return abort;
+        }
+        return false;
+    }
+
+    private void displayMessageWithReferences(final WorkflowScriptContext workflowScriptContext, final StoreElement element,
+                                              final ReferenceEntry... incomingReferences) {
+        final FsLocale fsLocale = new FsLocale(workflowScriptContext);
+        ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, fsLocale.get());
+        StringBuilder builder = new StringBuilder();
+        for (ReferenceEntry referencedObject : incomingReferences) {
+            if (referencedObject.getReferencedObject() instanceof IDProvider) {
+                IDProvider storeElement = (IDProvider) referencedObject.getReferencedObject();
+                builder.append("\n- ");
+                builder.append(storeElement.getDisplayName(fsLocale.getLanguage()));
+                builder.append(" (").append(storeElement.getId()).append(")");
+            }
+        }
+        final String refs = builder.toString();
+        Logging.logWarning("Cannot be deleted, because " + element.getReferenceName() + " has incoming refs:" + refs, LOGGER);
+        if(element instanceof Media) {
+            showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING),
+                       bundle.getString(WorkflowConstants.IMAGE_HAS_REFERENCES) + refs);
+        } else {
+            showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING),
+                                   bundle.getString(WorkflowConstants.IMAGE_FOLDER_HAS_REFERENCES) + refs);
+        }
     }
 
     private static boolean isFolderCheckFailTrue(WorkflowScriptContext workflowScriptContext) {

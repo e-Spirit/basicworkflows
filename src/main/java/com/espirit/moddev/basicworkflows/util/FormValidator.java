@@ -23,6 +23,7 @@ package com.espirit.moddev.basicworkflows.util;
 import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
+import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
 import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.BrokerAgent;
@@ -114,7 +115,7 @@ public class FormValidator {
                 if (idProvider instanceof Section) {
                     // section has no uid so show page instead
                     element = "\n" + idProvider.getParent().getParent().getElementType() + ": " + idProvider.getParent().getParent().getUid() + "\n";
-                } else if (idProvider instanceof ProjectPropertiesImpl) {
+                } else if (idProvider instanceof ProjectPropertiesImpl || idProvider instanceof GCAFolder ) {
                     // element uid for error msg
                     element = "\n" + idProvider.getElementType() + "\n";
                 } else {

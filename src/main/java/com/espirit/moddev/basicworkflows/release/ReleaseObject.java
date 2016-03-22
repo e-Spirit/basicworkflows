@@ -205,7 +205,7 @@ public class ReleaseObject {
                         || idProvider instanceof PageRefFolder
                         || idProvider instanceof SiteStoreRoot
                         || customReleaseElements.contains(idProvider)) {
-                        Logging.logInfo("Prepare release for: " + idProvider.getId(), LOGGER);
+                        Logging.logInfo("Prepare " + (checkOnly ? "test " : "") + "release for: " + idProvider.getId(), LOGGER);
 
                         // only release items that are not yet released
                         if (idProvider.getReleaseStatus() != IDProvider.RELEASED && !(idProvider instanceof TemplateStoreElement)

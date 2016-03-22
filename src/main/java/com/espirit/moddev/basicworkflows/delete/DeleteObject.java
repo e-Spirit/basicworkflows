@@ -22,13 +22,24 @@ package com.espirit.moddev.basicworkflows.delete;
 import com.espirit.moddev.basicworkflows.util.Dialog;
 import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.AccessUtil;
 import de.espirit.firstspirit.access.BaseContext;
+import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.ServerActionHandle;
-import de.espirit.firstspirit.access.store.*;
+import de.espirit.firstspirit.access.store.DeleteProgress;
+import de.espirit.firstspirit.access.store.ElementDeletedException;
+import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.LockException;
+import de.espirit.firstspirit.access.store.ReleaseProgress;
+import de.espirit.firstspirit.access.store.Store;
+import de.espirit.firstspirit.access.store.StoreElement;
+import de.espirit.firstspirit.access.store.StoreElementFilter;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
+import de.espirit.firstspirit.access.store.mediastore.Media;
+import de.espirit.firstspirit.access.store.mediastore.MediaFolder;
 import de.espirit.firstspirit.access.store.pagestore.Page;
 import de.espirit.firstspirit.access.store.pagestore.PageFolder;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
@@ -40,7 +51,13 @@ import de.espirit.firstspirit.server.storemanagement.ReleaseFailedException;
 import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.Set;
 
 import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
 
@@ -187,11 +204,13 @@ public class DeleteObject {
      * @param checkOnly Determines if the method should do only a check or really delete the object.
      */
     private void deleteIDProvider(boolean checkOnly) {
+        Logging.logInfo("deleteIDProvider(" + checkOnly + ")", getClass());
         Map<String, List<IDProvider>> elementList = getDeleteElements();
+        final List<IDProvider> listOfObjectsToDelete = elementList.get(DEL_OBJECTS);
         if (checkOnly) {
             List<IDProvider> lockedElements = new ArrayList<IDProvider>();
-            if (elementList.get(DEL_OBJECTS) != null) {
-                for (IDProvider idProv : elementList.get(DEL_OBJECTS)) {
+            if (listOfObjectsToDelete != null) {
+                for (IDProvider idProv : listOfObjectsToDelete) {
                     if (idProv.isLockedOnServer(true) && !idProv.isLocked()) {
                         // element is locked on server from different session, delete not possible
                         lockedElements.add(idProv);
@@ -210,8 +229,10 @@ public class DeleteObject {
             }
             storeReferences(lockedElements);
         } else {
-            if (elementList.get(DEL_OBJECTS) != null && !elementList.get(DEL_OBJECTS).isEmpty()) {
-                deleteElements(elementList.get(DEL_OBJECTS));
+            final boolean listContainsItems = listOfObjectsToDelete != null && !listOfObjectsToDelete.isEmpty();
+            Logging.logInfo("listContainsItems: " + listContainsItems, getClass());
+            if (listContainsItems) {
+                deleteElements(listOfObjectsToDelete);
             }
             if (elementList.get(REL_OBJECTS) != null && !elementList.get(REL_OBJECTS).isEmpty()) {
                 releaseElements(elementList.get(REL_OBJECTS));
@@ -225,6 +246,8 @@ public class DeleteObject {
      * @param deleteObjects The list of IDProvider objects to delete.
      */
     private void deleteElements(List<IDProvider> deleteObjects) {
+
+        Logging.logInfo("deleteElements: " + deleteObjects.size(), getClass());
 
         // lock workflow element first
         try {
@@ -264,6 +287,8 @@ public class DeleteObject {
             } catch (Exception e) {
                 Logging.logError(EXCEPTION + idProvider, e, LOGGER);
             }
+        } else {
+            Logging.logWarning("ServerActionHandle for DeleteProgress is null!", getClass());
         }
         workflowScriptContext.getTask().closeTask();
         workflowScriptContext.getElement().refresh();
@@ -357,6 +382,13 @@ public class DeleteObject {
                 // add current PageRefStore element and PageRefFolders (up-recursive)
                 regardPageRefStore();
             }
+            //Added for media management in CC (since FS 5.2)
+            if (idProvider instanceof Media || idProvider instanceof MediaFolder) {
+                //false == don't delete parent folder, see FSFIVE-53
+                final boolean deleteEmptyParent = true;
+                // add current MediaElement element and MediaFolder (up-recursive)
+                regardMediaStore(deleteEmptyParent);
+            }
         } else {
             // JC
             deleteObjects.add(idProvider);
@@ -379,25 +411,8 @@ public class DeleteObject {
         // add current element
         deleteObjects.add(idProvider);
         // add PagerefFolder (up-recursive) if no child elements are present
-        IDProvider element = idProvider;
         final StoreElementFilter filter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
-        while (element.getParent() != null) {
-            element = element.getParent();
-            Logging.logInfo("Checking element " + element.getUid(), LOGGER);
-            Iterator<StoreElement> iter = element.getChildren(filter, false).iterator();
-            // folder has at least one element
-            iter.next();
-            // check if there are more
-            if (!iter.hasNext()) {
-                Logging.logInfo("element has no children", LOGGER);
-                deleteObjects.add(element);
-            } else {
-                Logging.logInfo("element has children - abort", LOGGER);
-                releaseObjects.add(element);
-                break;
-            }
-        }
-
+        checkParentPath(idProvider, filter);
     }
 
     /**
@@ -411,16 +426,46 @@ public class DeleteObject {
             deleteObjects.add(element);
             // delete PageFolder if last child is being deleted
             final StoreElementFilter filter = on(PageFolder.class, Page.class);
-            while (element.getParent() != null) {
-                element = element.getParent();
+            checkParentPath(element, filter);
+        }
+    }
+
+    /**
+     * New since media management in CC added in FS 5.2.
+     */
+    private void regardMediaStore(final boolean deleteEmptyParent) {
+        deleteObjects.add(idProvider);
+        if (deleteEmptyParent) {
+            // add Media (up-recursive) if no child elements are present
+            final StoreElementFilter filter = on(MediaFolder.class, Media.class);
+            checkParentPath(idProvider, filter);
+        }
+    }
+
+    private void checkParentPath(final IDProvider childElement, final StoreElementFilter filter) {
+        IDProvider element = childElement;
+        while (element.getParent() != null) {
+            element = element.getParent();
+            final ReferenceEntry[] incomingReferences = element.getIncomingReferences();
+            // only use elements that are no longer in use
+            if(incomingReferences.length == 0) {
+                Logging.logInfo("Checking parent element " + element.getUid() + " of child element " + childElement.getUid(), LOGGER);
                 Iterator<StoreElement> iter = element.getChildren(filter, false).iterator();
+                // folder has at least one element -- our child
                 iter.next();
+                // check if there are more
                 if (!iter.hasNext()) {
+                    Logging.logInfo("parent element has no children - add to delete objects", LOGGER);
                     deleteObjects.add(element);
                 } else {
+                    Logging.logInfo("parent element has children - abort", LOGGER);
                     releaseObjects.add(element);
                     break;
                 }
+            } else {
+                Logging.logInfo("element has incoming references - abort", LOGGER);
+                releaseObjects.add(element);
+                break;
             }
         }
     }
