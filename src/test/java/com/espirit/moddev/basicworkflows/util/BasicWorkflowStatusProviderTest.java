@@ -96,24 +96,24 @@ public class BasicWorkflowStatusProviderTest {
     };
 
     @Theory
-    public void testGetReleaseStateSimple(ReleaseStateChangedTestData testData) throws Exception {
+    public void testGetReleaseStateSimple(final ReleaseStateChangedTestData testData) throws Exception {
 
-        IDProvider element = mock(IDProvider.class);
+        final IDProvider element = mock(IDProvider.class);
 
         when(element.isReleaseSupported()).thenReturn(testData.isReleaseSupported());
         when(element.getReleaseStatus()).thenReturn(testData.getProvidedState());
         when(element.hasTask()).thenReturn(testData.hasTasks());
 
-        WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(element);
+        final WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(element);
 
         assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
     }
 
     @Theory
-    public void testGetReleaseStatePage(ReleaseStateChangedTestData testData) throws Exception {
+    public void testGetReleaseStatePage(final ReleaseStateChangedTestData testData) throws Exception {
 
-        PageRef element = mock(PageRef.class);
-        Page page = mock(Page.class);
+        final PageRef element = mock(PageRef.class);
+        final Page page = mock(Page.class);
 
         when(element.isReleaseSupported()).thenReturn(Boolean.TRUE);
         when(element.getReleaseStatus()).thenReturn(IDProvider.RELEASED);
@@ -124,19 +124,20 @@ public class BasicWorkflowStatusProviderTest {
         when(page.hasTask()).thenReturn(testData.hasTasks());
         when(element.getParent()).thenReturn(element);
 
-        WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(element);
+        final WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(element);
 
         assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
     }
 
+
     @Theory
-    public void testGetReleaseStateDocumentGroup(ReleaseStateChangedTestData testData) throws Exception {
+    public void testGetReleaseStateDocumentGroup(final ReleaseStateChangedTestData testData) throws Exception {
 
-        DocumentGroup group = mock(DocumentGroup.class);
-        PageRef element = mock(PageRef.class);
-        Page page = mock(Page.class);
+        final DocumentGroup group = mock(DocumentGroup.class);
+        final PageRef element = mock(PageRef.class);
+        final Page page = mock(Page.class);
 
-        Listable<StoreElement> listable = new CollectionListable<StoreElement>(Arrays.asList((StoreElement) element));
+        final Listable<StoreElement> listable = new CollectionListable<StoreElement>(Arrays.asList((StoreElement) element));
 
         when(group.getChildCount()).thenReturn(1);
         when(group.getChildren()).thenReturn(listable);
@@ -150,7 +151,7 @@ public class BasicWorkflowStatusProviderTest {
         when(page.hasTask()).thenReturn(testData.hasTasks());
         when(element.getParent()).thenReturn(element);
 
-        WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(group);
+        final WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(group);
 
         assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
     }
@@ -159,13 +160,13 @@ public class BasicWorkflowStatusProviderTest {
     public static IDProvider[] elements = {mock(Page.class), mock(PageRef.class), mock(Dataset.class), mock(DocumentGroup.class)};
 
     @Theory(nullsAccepted = false)
-    public void testGetWorkflowGroupsNotNull(IDProvider element) {
+    public void testGetWorkflowGroupsNotNull(final IDProvider element) {
 
-        List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(element);
+        final List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(element);
 
         assertThat("Expect a list", workflowGroupList, hasSize(1));
 
-        WorkflowGroup workflowGroup = workflowGroupList.get(0);
+        final WorkflowGroup workflowGroup = workflowGroupList.get(0);
 
         assertThat("Expect a list", workflowGroup.getElements(), hasSize(1));
         assertThat("Expect same instance in list", workflowGroup.getElements(), contains(sameInstance(element)));
@@ -186,14 +187,37 @@ public class BasicWorkflowStatusProviderTest {
     }
 
     @Test
+    public void testGetWorkflowGroupsPageHasTask() {
+
+        final PageRef pageRef = mock(PageRef.class);
+        final Page page = mock(Page.class);
+
+        when(pageRef.getPage()).thenReturn(page);
+        when(page.hasTask()).thenReturn(Boolean.TRUE);
+
+        final List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(pageRef);
+
+        assertThat("Expect a list", workflowGroupList, hasSize(1));
+
+        final WorkflowGroup workflowGroup = workflowGroupList.get(0);
+
+        assertThat("Expect a list", workflowGroup.getElements(), hasSize(1));
+        assertThat("Expect same instance in list", workflowGroup.getElements(), contains(sameInstance((IDProvider) page)));
+
+        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, Locale.GERMANY);
+
+        assertThat("Expect a specific value", workflowGroup.getDisplayName(), is(bundle.getString("page")));
+    }
+
+    @Test
     public void testGetWorkflowGroupsEmptyList() {
-        List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(mock(IDProvider.class));
+        final List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(mock(IDProvider.class));
         assertThat("Expect an empty list", workflowGroupList, hasSize(0));
     }
 
     @Test
     public void testGetWorkflowGroupsEmptyListNullElement() {
-        List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(null);
+        final List<WorkflowGroup> workflowGroupList = testling.getWorkflowGroups(null);
         assertThat("Expect an empty list", workflowGroupList, hasSize(0));
     }
 

@@ -20,7 +20,7 @@
 
 package com.espirit.moddev.basicworkflows.util;
 
-import de.espirit.common.Logging;
+import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.StoreElement;
@@ -56,7 +56,7 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     @Override
     public State getReleaseState(final IDProvider element) {
         State releaseStateResult = State.RELEASED;
-        EnumMap<State, Boolean> releaseStatus = new EnumMap<State, Boolean>(State.class);
+        final EnumMap<State, Boolean> releaseStatus = new EnumMap<State, Boolean>(State.class);
 
         // check workflow element status
         if (isNotReleased(element)) {
@@ -67,8 +67,8 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         }
 
         // check status of page and pagereffolder as well if element is a pageref
-        if (element instanceof PageRef) {
-            PageRef pageRef = (PageRef) element;
+        if (isPageRef(element)) {
+            final PageRef pageRef = (PageRef) element;
             if (isNotReleased(pageRef.getPage()) || isNotReleased(element.getParent())) {
                 releaseStatus.put(State.CHANGED, true);
             }
@@ -77,10 +77,10 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
             }
             // check status of pagerefs and pages as well if element is a documentgroup
         } else if (element instanceof DocumentGroup) {
-            DocumentGroup documentGroup = (DocumentGroup) element;
-            for (StoreElement storeElement : documentGroup.getChildren()) {
+            final DocumentGroup documentGroup = (DocumentGroup) element;
+            for (final StoreElement storeElement : documentGroup.getChildren()) {
                 if (storeElement instanceof PageRef) {
-                    PageRef pageRef = (PageRef) storeElement;
+                    final PageRef pageRef = (PageRef) storeElement;
                     if (isNotReleased(pageRef) || isNotReleased(pageRef.getPage())) {
                         releaseStatus.put(State.CHANGED, true);
                     }
@@ -127,7 +127,11 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
 
-        if (element instanceof PageRef || element instanceof Page) {
+        if (isPageRef(element) && pageHasTask((PageRef) element)) {
+            final WorkflowGroup pageGroup = Factory.create(bundle.getString("page"),
+                                                           Collections.<IDProvider>singletonList(((PageRef) element).getPage()));
+            collectedWorkflowGroups.add(pageGroup);
+        } else if (isPageRef(element) || element instanceof Page) {
             final WorkflowGroup pageRefGroup = Factory.create(bundle.getString("pageReference"), Collections.singletonList(element));
             collectedWorkflowGroups.add(pageRefGroup);
         } else if (element instanceof DocumentGroup) {
@@ -140,15 +144,23 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
             collectedWorkflowGroups.add(workflowDataset);
         } else {
             if (element != null) {
-                String message = "No workflow group object created for element '%s'";
+                final String message = "No workflow group object created for element '%s'";
                 Logging.logWarning(String.format(message, element.getClass().getName()), LOGGER);
             }
         }
         return collectedWorkflowGroups;
     }
 
+    private static boolean pageHasTask(final PageRef element) {
+        return element.getPage() != null && element.getPage().hasTask();
+    }
+
+    private static boolean isPageRef(final IDProvider element) {
+        return element instanceof PageRef;
+    }
+
     @Override
-    public void setUp(BaseContext baseContext) {
+    public void setUp(final BaseContext baseContext) {
         this.context = baseContext;
     }
 

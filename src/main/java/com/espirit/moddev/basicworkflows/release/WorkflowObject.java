@@ -153,11 +153,7 @@ public class WorkflowObject {
     private static <L extends List> void addOutgoingReferences(final ReferenceEntry[] entries, final L referencedObjects,
                                                                final boolean releaseWithMedia) {
         for (ReferenceEntry referenceEntry : entries) {
-            if (!releaseWithMedia) {
-                if (!referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
-                    referencedObjects.add(referenceEntry);
-                }
-            } else {
+            if (releaseWithMedia || !referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
                 referencedObjects.add(referenceEntry);
             }
         }
@@ -265,7 +261,7 @@ public class WorkflowObject {
                 }
 
                 // if not current PAGE within PAGEREF-Release or media and release with media is not checked
-                if (!isCurrentPage && idProvider != null || (isMedia(idProvider) && !releaseWithMedia)) {
+                if (idProvider != null && (!isCurrentPage || (isMedia(idProvider) && !releaseWithMedia))) {
                     idProvider.refresh();
                     // check if only media is referenced except templates
                     if (!isMedia(idProvider) && !isTemplate(idProvider) && !isDataRecord(idProvider)

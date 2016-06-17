@@ -23,7 +23,6 @@ package com.espirit.moddev.basicworkflows.util;
 import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
-import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
 import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.BrokerAgent;
@@ -39,6 +38,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Set;
+
+import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
 
 /**
  * Convenience class to determine if a form is valid.

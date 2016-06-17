@@ -52,12 +52,14 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
         Boolean isReleasable = true;
 
+        // For A/B Testing it is possible to add an additional Workflow step that collects FirstSpirit Objects to release (i.e. Variants)
         Object relatedPageRefElements = readObjectFromSession(workflowScriptContext, WorkflowConstants.RELATED_PAGEREF_ELEMENTS);
         List<String> relatedPageRefUids = null;
         if(relatedPageRefElements != null) {
             relatedPageRefUids = (List<String>) relatedPageRefElements;
         }
 
+        // Check the collected FirstSpirit objects otherwise proceed as normal
         if (relatedPageRefUids != null && !relatedPageRefUids.isEmpty()) {
             for (String pageRefUid : relatedPageRefUids) {
                 PageRef pageRef = new StoreUtil(workflowScriptContext).loadPageRefByUid(pageRefUid);
