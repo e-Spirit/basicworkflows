@@ -62,7 +62,7 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
-public class WorkflowObject {
+class WorkflowObject {
 
     /**
      * The storeElement to use.
@@ -94,7 +94,7 @@ public class WorkflowObject {
      *
      * @param workflowScriptContext The workflowScriptContext from the workflow.
      */
-    public WorkflowObject(final WorkflowScriptContext workflowScriptContext) {
+    WorkflowObject(final WorkflowScriptContext workflowScriptContext) {
         this.workflowScriptContext = workflowScriptContext;
         ResourceBundle.clearCache();
         bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
@@ -112,7 +112,7 @@ public class WorkflowObject {
      * @param releaseWithMedia Determines if media references should also be checked
      * @return a list of elements that reference the workflow object.
      */
-    public List<Object> getRefObjectsFromStoreElement(final boolean releaseWithMedia) {
+    List<Object> getRefObjectsFromStoreElement(final boolean releaseWithMedia) {
         List<Object> referencedObjects = new ArrayList<Object>();
 
         if (isPageRef(storeElement)) {
@@ -145,16 +145,20 @@ public class WorkflowObject {
         return referencedObjects;
     }
 
-    private static <L extends List> void addOutgoingReferences(final StoreElement element, final L referencedObjects,
-                                                               final boolean releaseWithMedia) {
+    private <L extends List> void addOutgoingReferences(final StoreElement element, final L referencedObjects,
+                                                        final boolean releaseWithMedia) {
         addOutgoingReferences(element.getOutgoingReferences(), referencedObjects, releaseWithMedia);
     }
 
-    private static <L extends List> void addOutgoingReferences(final ReferenceEntry[] entries, final L referencedObjects,
-                                                               final boolean releaseWithMedia) {
+    private <L extends List> void addOutgoingReferences(final ReferenceEntry[] entries, final L referencedObjects,
+                                                        final boolean releaseWithMedia) {
         for (ReferenceEntry referenceEntry : entries) {
-            if (releaseWithMedia || !referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE)) {
-                referencedObjects.add(referenceEntry);
+            boolean referencedElementIsNotSelf = referenceEntry.getReferencedElement() != storeElement;
+            boolean referencedElementIsNoTemplate = !(referenceEntry.getReferencedElement() instanceof TemplateStoreElement);
+            boolean referencedElementIsNoMedia = !referenceEntry.isType(ReferenceEntry.MEDIA_STORE_REFERENCE);
+            boolean releaseReferencedMedia = releaseWithMedia || referencedElementIsNoMedia;
+            if(referencedElementIsNoTemplate && releaseReferencedMedia && referencedElementIsNotSelf) {
+                    referencedObjects.add(referenceEntry);
             }
         }
     }
@@ -166,7 +170,7 @@ public class WorkflowObject {
      * @param releaseWithMedia Determines if media references should also be checked
      * @return a list of elements that reference the workflow object.
      */
-    public List<ReferenceEntry> getRefObjectsFromSection(final StoreElement page, final boolean releaseWithMedia) {
+    private List<ReferenceEntry> getRefObjectsFromSection(final StoreElement page, final boolean releaseWithMedia) {
         List<ReferenceEntry> referencedObjects = new ArrayList<ReferenceEntry>();
 
         // add outgoing references of page sections
@@ -187,7 +191,7 @@ public class WorkflowObject {
      * @param includeMedia Determines if media references should also be checked
      * @return a list of elements that reference the workflow object.
      */
-    public List<ReferenceEntry> getRefObjectsFromEntity(final boolean includeMedia) {
+    List<ReferenceEntry> getRefObjectsFromEntity(final boolean includeMedia) {
         List<ReferenceEntry> referencedObjects = new ArrayList<ReferenceEntry>();
         addOutgoingReferences(content2.getSchema().getOutgoingReferences(entity), referencedObjects, includeMedia);
         return referencedObjects;
@@ -200,7 +204,7 @@ public class WorkflowObject {
      * @param releaseWithMedia Determines if media elements should be implicitly released.
      * @return true if successfull
      */
-    public ReferenceResult checkReferences(final List<Object> releaseObjects, final boolean releaseWithMedia) {
+    ReferenceResult checkReferences(final List<Object> releaseObjects, final boolean releaseWithMedia) {
         // object to store if elements can be released
         final ReferenceResult referenceResult = new ReferenceResult();
 
@@ -276,8 +280,9 @@ public class WorkflowObject {
                         }
                     }
                     // check if all references are released
-                    if (!isTemplate(idProvider) && !isDataRecord(idProvider) && !isQuery(idProvider) && idProvider.isReleaseSupported()
-                        && isNeverReleased(idProvider)) {
+                    boolean hasCorrectType = !isTemplate(idProvider) && !isDataRecord(idProvider) && !isQuery(idProvider);
+                    boolean isReleasable = idProvider.isReleaseSupported() && isNeverReleased(idProvider);
+                    if (hasCorrectType && isReleasable) {
                         Logging.logWarning("Never released:" + idProvider.getUid(), LOGGER);
                         referenceResult.setAllObjectsReleased(false);
                         recordIncorrectElement(notReleasedElements, idProvider);
@@ -290,7 +295,7 @@ public class WorkflowObject {
         workflowScriptContext.getSession().put(WorkflowConstants.WF_NOT_RELEASED_ELEMENTS, notReleasedElements);
 
         // remember broken references
-        workflowScriptContext.getSession().put(WorkflowConstants.WF_BROKEN_REFERENCES, Boolean.valueOf(!referenceResult.isNoBrokenReferences()));
+        workflowScriptContext.getSession().put(WorkflowConstants.WF_BROKEN_REFERENCES, !referenceResult.isNoBrokenReferences());
 
         return referenceResult;
     }
@@ -464,7 +469,7 @@ public class WorkflowObject {
      *
      * @param idProvider the workflow object to use.
      */
-    public void setStoreElement(IDProvider idProvider) {
+    void setStoreElement(IDProvider idProvider) {
         storeElement = idProvider;
     }
 }
