@@ -25,13 +25,18 @@ import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.ReferenceResult;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 
+import de.espirit.common.TypedFilter;
 import de.espirit.common.base.Logging;
+import de.espirit.common.util.Listable;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
+import de.espirit.firstspirit.access.project.Project;
 import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.StoreElement;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
+import de.espirit.firstspirit.access.store.contentstore.ContentStoreRoot;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
 import de.espirit.firstspirit.access.store.globalstore.GCAPage;
@@ -48,6 +53,8 @@ import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
 import de.espirit.firstspirit.access.store.templatestore.Query;
 import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.agency.StoreAgent;
+import de.espirit.firstspirit.agency.StoreElementAgent;
 import de.espirit.or.schema.Entity;
 
 import java.util.ArrayList;
@@ -214,26 +221,38 @@ class WorkflowObject {
         for (final Object object : releaseObjects) {
 
             if (isEntity(object) || (isReferenceEntry(object) && isEntity(getReferencedObjectFrom((ReferenceEntry) object)))) {
-                Entity entityFromReference;
+
+                final Entity entityFromReference;
+
                 if (isEntity(object)) {
                     entityFromReference = (Entity) object;
                 } else {
                     entityFromReference = (Entity) getReferencedObjectFrom((ReferenceEntry) object);
                 }
-                referenceResult.setOnlyMedia(false);
-                // check if is no media and released
-                final String
-                    entityIdentifier =
-                    entityFromReference.getIdentifier().getEntityTypeName() + " (" + entityFromReference.getIdentifier().getEntityTypeName() + ", ID#"
-                    + entityFromReference.get("fs_id")
-                    + ")";
-                if (!entityFromReference.isReleased()) {
-                    Logging.logWarning("No media and not released:" + entityFromReference.getIdentifier() + "#" + entityFromReference.get("fs_id"),
-                                       LOGGER);
-                    referenceResult.setNotMediaReleased(false);
-                    referenceResult.setAllObjectsReleased(false);
-                    notReleasedElements.put(entityIdentifier, IDProvider.UidType.CONTENTSTORE_DATA);
+
+                Listable<Content2> suitableContent2Objects = getContent2ObjectsForEntity(entityFromReference);
+
+                if(suitableContent2Objects.toList().isEmpty()) {
+                    throw new IllegalStateException("No suitable content2 object found for referenced entity!");
+                } else {
+                    boolean schemaIsReadonly = suitableContent2Objects.getFirst().getSchema().isReadOnly();
+                    if(!schemaIsReadonly && !entityFromReference.isReleased()) {
+                        Logging.logWarning("No media and not released:" + entityFromReference.getIdentifier() + "#" + entityFromReference.get("fs_id"),
+                                           LOGGER);
+
+                        final String
+                            entityIdentifier =
+                            entityFromReference.getIdentifier().getEntityTypeName() + " (" + entityFromReference.getIdentifier().getEntityTypeName() + ", ID#"
+                            + entityFromReference.get("fs_id")
+                            + ")";
+
+                        referenceResult.setNotMediaReleased(false);
+                        referenceResult.setAllObjectsReleased(false);
+                        notReleasedElements.put(entityIdentifier, IDProvider.UidType.CONTENTSTORE_DATA);
+                    }
                 }
+
+                referenceResult.setOnlyMedia(false);
 
                 checkBrokenReferences(object, referenceResult);
 
@@ -298,6 +317,19 @@ class WorkflowObject {
         workflowScriptContext.getSession().put(WorkflowConstants.WF_BROKEN_REFERENCES, !referenceResult.isNoBrokenReferences());
 
         return referenceResult;
+    }
+
+    private Listable<Content2> getContent2ObjectsForEntity(final Entity entityFromReference) {
+
+        StoreAgent storeAgent = workflowScriptContext.requireSpecialist(StoreAgent.TYPE);
+        ContentStoreRoot contentStoreRoot = (ContentStoreRoot) storeAgent.getStore(Store.Type.CONTENTSTORE);
+
+        return contentStoreRoot.getChildren(new TypedFilter<Content2>(Content2.class) {
+            @Override
+            public boolean accept(Content2 storeElement) {
+                return (storeElement.getEntityType().equals(entityFromReference.getEntityType())) && storeElement.getEntity(entityFromReference.getKeyValue()) != null;
+            }
+        }, true);
     }
 
     private static Object getReferencedObjectFrom(final ReferenceEntry object) {
