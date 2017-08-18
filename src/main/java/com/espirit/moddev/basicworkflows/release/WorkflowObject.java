@@ -30,7 +30,6 @@ import de.espirit.common.base.Logging;
 import de.espirit.common.util.Listable;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
-import de.espirit.firstspirit.access.project.Project;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.StoreElement;
@@ -54,7 +53,6 @@ import de.espirit.firstspirit.access.store.templatestore.Query;
 import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.StoreAgent;
-import de.espirit.firstspirit.agency.StoreElementAgent;
 import de.espirit.or.schema.Entity;
 
 import java.util.ArrayList;
@@ -350,6 +348,11 @@ class WorkflowObject {
             if (referenceEntry.isBroken()) {
                 referenceResult.setNoBrokenReferences(false);
                 Logging.logInfo("Reference broken!", LOGGER);
+                ReferenceEntry[] usages = referenceEntry.getUsages();
+                Logging.logInfo("Current usages:", LOGGER);
+                for(ReferenceEntry usage : usages) {
+                    Logging.logInfo("Reference id: " + usage.getId(), LOGGER);
+                }
             } else {
                 checkForBrokenRefsOnNonBrokenRefs(referenceResult, referenceEntry);
             }
@@ -362,8 +365,13 @@ class WorkflowObject {
             for (ReferenceEntry reference : outgoingReferences) {
                 Logging.logInfo("Check broken reference for " + reference, LOGGER);
                 if (reference.isBroken()) {
-                    Logging.logInfo("Reference broken!", LOGGER);
                     referenceResult.setNoBrokenReferences(false);
+                    Logging.logInfo("Reference broken!", LOGGER);
+                    ReferenceEntry[] usages = referenceEntry.getUsages();
+                    Logging.logInfo("Current usages:", LOGGER);
+                    for(ReferenceEntry usage : usages) {
+                        Logging.logInfo("Reference id: " + usage.getId(), LOGGER);
+                    }
                 }
             }
         }

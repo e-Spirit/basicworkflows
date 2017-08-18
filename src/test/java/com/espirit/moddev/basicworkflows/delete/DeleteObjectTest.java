@@ -19,25 +19,23 @@
  */
 package com.espirit.moddev.basicworkflows.delete;
 
-import de.espirit.firstspirit.access.AccessUtil;
 import de.espirit.firstspirit.access.BaseContext;
+import de.espirit.firstspirit.access.ServerActionHandle;
 import de.espirit.firstspirit.access.Task;
+import de.espirit.firstspirit.access.store.DeleteProgress;
 import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.ReleaseProgress;
 import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.mediastore.Media;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+
+import java.util.List;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.anyCollectionOf;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -46,8 +44,6 @@ import static org.mockito.Mockito.when;
 /**
  * @author gremplewski
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(AccessUtil.class)
 public class DeleteObjectTest {
 
     private WorkflowScriptContext workflowScriptContext;
@@ -56,10 +52,7 @@ public class DeleteObjectTest {
 
     @Before
     public void initMocks() {
-        PowerMockito.mockStatic(AccessUtil.class);
-        when(AccessUtil.delete(anyCollectionOf(IDProvider.class), eq(true))).thenReturn(null);
-
-        store = mock(Store.class);
+              store = mock(Store.class);
     }
 
     private void setUpNonMediaStore() {
@@ -117,7 +110,17 @@ public class DeleteObjectTest {
     }
 
     private void runDelete() {
-        DeleteObject deleteObject = new DeleteObject(workflowScriptContext);
+        DeleteObject deleteObject = new DeleteObject(workflowScriptContext){
+            @Override
+            protected ServerActionHandle<? extends DeleteProgress, Boolean> deleteIgnoringReferences(List<IDProvider> deleteObjects) {
+                return null;
+            }
+
+            @Override
+            protected ServerActionHandle<? extends ReleaseProgress, Boolean> releaseWithAccessibilityAndNewOnly(IDProvider idProv) {
+                return null;
+            }
+        };
         final boolean deleted = deleteObject.delete(false);
 
         assertTrue("Expect true", deleted);

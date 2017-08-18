@@ -259,7 +259,7 @@ public class DeleteObject {
         }
 
         // delete elements
-        ServerActionHandle<? extends DeleteProgress, Boolean> handle = AccessUtil.delete(deleteObjects, true);
+        ServerActionHandle<? extends DeleteProgress, Boolean> handle = deleteIgnoringReferences(deleteObjects);
         if (handle != null) {
             try {
                 handle.checkAndThrow();
@@ -294,6 +294,11 @@ public class DeleteObject {
         workflowScriptContext.getElement().refresh();
     }
 
+    // Needed in Tests
+    protected ServerActionHandle<? extends DeleteProgress, Boolean> deleteIgnoringReferences(final List<IDProvider> deleteObjects) {
+        return AccessUtil.delete(deleteObjects, true);
+    }
+
 
     /**
      * Convenience method to release IDProvider objects (used in webedit context).
@@ -304,7 +309,7 @@ public class DeleteObject {
         // release parent elements (only used in webedit workflow)
         ServerActionHandle<? extends ReleaseProgress, Boolean> releaseHandle;
         for (IDProvider idProv : releaseObjects) {
-            releaseHandle = AccessUtil.release(idProv, false, true, false, IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY);
+            releaseHandle = releaseWithAccessibilityAndNewOnly(idProv);
             if (releaseHandle != null) {
                 try {
                     releaseHandle.checkAndThrow();
@@ -356,6 +361,10 @@ public class DeleteObject {
             }
 
         }
+    }
+
+    protected ServerActionHandle<? extends ReleaseProgress, Boolean> releaseWithAccessibilityAndNewOnly(final IDProvider idProv) {
+        return AccessUtil.release(idProv, false, true, false, IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY);
     }
 
 
