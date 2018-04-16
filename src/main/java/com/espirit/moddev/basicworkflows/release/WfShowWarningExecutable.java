@@ -46,8 +46,7 @@ public class WfShowWarningExecutable extends AbstractWorkflowExecutable {
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
 
         // show dialog
         showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING) + ":", bundle.getString("warnReleaseMessage"));

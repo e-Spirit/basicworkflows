@@ -12,9 +12,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -24,10 +24,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class WfShowNotReleasedObjectsExecutableTest {
-
-    @Rule
-    public MockitoRule injectMocks = MockitoJUnit.rule().silent();
 
     @Rule
     public BaseContextRule contextRule = new BaseContextRule(Locale.GERMAN);

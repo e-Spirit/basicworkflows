@@ -20,10 +20,16 @@
 
 package com.espirit.moddev.basicworkflows.release;
 
-import com.espirit.moddev.basicworkflows.util.*;
+import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
+import com.espirit.moddev.basicworkflows.util.FormEvaluator;
+import com.espirit.moddev.basicworkflows.util.StoreUtil;
+import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+import com.espirit.moddev.basicworkflows.util.WorkflowSessionHelper;
+
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
@@ -32,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 
 /**
  * This class is used to test the release of the workflow object.
@@ -48,30 +55,44 @@ public class WfReleaseTestExecutable extends AbstractWorkflowExecutable {
 
 
     @Override
-    public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
-        final boolean releaseWithMedia = new FormEvaluator(workflowScriptContext).getCheckboxValue("wf_releasewmedia");
+    @SuppressWarnings("unchecked")
+    public Object execute(final Map<String, Object> params) {
+        final WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
+
         final WorkflowObject workflowObject = new WorkflowObject(workflowScriptContext);
-        boolean releaseStatus = false;
-        List<Object> releaseObjects = new ArrayList<Object>();
+
+        final FormEvaluator formEvaluator = new FormEvaluator(workflowScriptContext);
+        final boolean releaseWithMedia = formEvaluator.getCheckboxValue(WorkflowConstants.MEDIA_FORM_REFNAME);
+        final boolean releaseRecursively = formEvaluator.getCheckboxValue(WorkflowConstants.RECURSIVE_FORM_REFNAME);
+        workflowObject.setRecursively(releaseRecursively);
+
+        final boolean releaseStatus;
+        final List<Object> releaseObjects = new ArrayList<>();
+
+        final List<IDProvider> childrenList = new ArrayList<>();
+		final Map<Long, Store.Type> childrenIdMap = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.WF_RECURSIVE_CHILDREN);
+        childrenList.addAll(loadChildrenList(workflowScriptContext, childrenIdMap));
+
+        final IDProvider releaseElement = workflowScriptContext.getElement();
 
         // check test case or skip if wfDoTestFail is set
         if (isNotFailedTest(workflowScriptContext)) {
-            Object releasePageRefElements = readObjectFromSession(workflowScriptContext, WorkflowConstants.RELEASE_PAGEREF_ELEMENTS);
+			final Object releasePageRefElements = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.RELEASE_PAGEREF_ELEMENTS);
             List<String> releasePageRefUids = null;
-            if(releasePageRefElements != null) {
+            if (releasePageRefElements != null && releasePageRefElements instanceof List) {
                 releasePageRefUids = (List<String>) releasePageRefElements;
             }
 
-            if (releasePageRefUids != null  && !releasePageRefUids.isEmpty()) {
-                for (String pageRefUid : releasePageRefUids) {
-                    PageRef pageRef = new StoreUtil(workflowScriptContext).loadPageRefByUid(pageRefUid);
+            if (releasePageRefUids != null && !releasePageRefUids.isEmpty()) {
+                for (final String pageRefUid : releasePageRefUids) {
+                    final StoreUtil storeUtil = new StoreUtil(workflowScriptContext);
+                    final PageRef pageRef = storeUtil.loadPageRefByUid(pageRefUid);
                     workflowObject.setStoreElement(pageRef);
-                     // add referenced elements from pageref excluding the pagerefs retrieved from the session since they will be added afterwards
-                    addReferencesExcludingPageRefsFromSession(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia), releasePageRefUids,
-                                                              releaseObjects);
+                    // add referenced elements from pageref excluding the pagerefs retrieved from
+                    // the session since they will be added afterwards
+                    final Set<Object> refObjectsFromStoreElement = workflowObject.getRefObjectsFromStoreElement(releaseWithMedia, false);
+                    addReferencesExcludingPageRefsFromSession(refObjectsFromStoreElement, releasePageRefUids, releaseObjects);
                     // add the pageref (and page)
                     if ((pageRef.getPage()).getReleaseStatus() != IDProvider.RELEASED) {
                         releaseObjects.add(pageRef.getPage());
@@ -79,38 +100,53 @@ public class WfReleaseTestExecutable extends AbstractWorkflowExecutable {
                     releaseObjects.add(pageRef);
                 }
                 // do test release
-                releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(true);
-            } else if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+                final ReleaseObject releaseObject = new ReleaseObject(workflowScriptContext, releaseObjects);
+                releaseStatus = releaseObject.release(true, releaseRecursively);
+            } else if (isStartedOnDatasource(workflowScriptContext)) {
                 // do test release of referenced media if checkbox is checked
                 releaseObjects.addAll(workflowObject.getRefObjectsFromEntity(releaseWithMedia));
                 // do test release
-                releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(true);
+                final ReleaseObject releaseObject = new ReleaseObject(workflowScriptContext, releaseObjects);
+                final boolean releaseStatusWithoutEntity = releaseObject.release(true, releaseRecursively);
                 // test release entity
-                if (releaseStatus) {
-                    ContentWorkflowable contentWorkflowable = (ContentWorkflowable) workflowScriptContext.getWorkflowable();
+                if (releaseStatusWithoutEntity) {
+                    final ContentWorkflowable contentWorkflowable = (ContentWorkflowable) workflowScriptContext.getWorkflowable();
                     // do release
-                    releaseStatus = new ReleaseObject(workflowScriptContext, contentWorkflowable.getEntity()).release(true);
+                    final ReleaseObject releaseObjectEntity = new ReleaseObject(workflowScriptContext, contentWorkflowable.getEntity());
+                    releaseStatus = releaseObjectEntity.release(true, releaseRecursively);
+                } else {
+                    releaseStatus = false;
                 }
             } else {
-                // add dependend objects
-                releaseObjects.addAll(workflowObject.getRefObjectsFromStoreElement(releaseWithMedia));
-                // add the object
-                releaseObjects.add(workflowScriptContext.getElement());
-                if (workflowScriptContext.getElement() instanceof PageRef
-                    && (((PageRef) workflowScriptContext.getElement()).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
-                    // if object is pageref, add page to release list if unreleased
-                    releaseObjects.add(((PageRef) workflowScriptContext.getElement()).getPage());
+                final List<IDProvider> releaseElementsWithPossibleChildren = new ArrayList();
+                releaseElementsWithPossibleChildren.add(releaseElement);
+
+                // add children to list if release recursively is set
+                if (releaseRecursively && !childrenList.isEmpty()) {
+                    releaseElementsWithPossibleChildren.addAll(childrenList);
+                }
+
+                addChildrenToReleaseObjects(releaseWithMedia, workflowObject, releaseObjects, releaseElementsWithPossibleChildren);
+
+                // do test release
+                for (final Object releaseObject : releaseObjects) {
+                    if (releaseObject instanceof IDProvider) {
+                        Logging.logInfo("release object id: " + ((IDProvider) releaseObject).getId(), LOGGER);
+                    }
                 }
                 // do test release
-                releaseStatus = new ReleaseObject(workflowScriptContext, releaseObjects).release(true);
+                final ReleaseObject releaseObject = new ReleaseObject(workflowScriptContext, releaseObjects);
+                releaseStatus = releaseObject.release(true, releaseRecursively);
             }
+        } else {
+            releaseStatus = false;
         }
         // check if test release was successful (check wfDoTestFail for test case)
         if (releaseStatus) {
             try {
                 workflowScriptContext.doTransition("trigger_test_finished");
                 Logging.logInfo("Workflow Test Release successful.", LOGGER);
-            } catch (IllegalAccessException e) {
+            } catch (final IllegalAccessException e) {
                 Logging.logError("Workflow Test Release failed!\n", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("testReleaseFailed"));
@@ -118,7 +154,7 @@ public class WfReleaseTestExecutable extends AbstractWorkflowExecutable {
         } else {
             try {
                 workflowScriptContext.doTransition("trigger_test_failed");
-            } catch (IllegalAccessException e) {
+            } catch (final IllegalAccessException e) {
                 Logging.logError("Workflow Test Release failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("testReleaseFailed"));
@@ -127,27 +163,39 @@ public class WfReleaseTestExecutable extends AbstractWorkflowExecutable {
         return true;
     }
 
-    /**
-     * Adds the elements from objectsToAdd to the resultList list excluding the elements listed in objectsToExclude
-     *
-     * @param objectsToAdd The objects to release
-     * @param objectsToExclude Uids of objects to exclude from list
-     * @param resultList The resulting list of objects to release
-     */
-    private void addReferencesExcludingPageRefsFromSession(List<Object> objectsToAdd, List<String> objectsToExclude,
-                                                           List<Object> resultList) {
-        for (Object object : objectsToAdd) {
-            if (object instanceof ReferenceEntry) {
-                ReferenceEntry refEntry = (ReferenceEntry) object;
-                if (refEntry.getReferencedElement() instanceof PageRef) {
-                    PageRef pageRef = (PageRef) refEntry.getReferencedElement();
-                    if (objectsToExclude.contains(pageRef.getUid())) {
-                        continue;
+    private static void addChildrenToReleaseObjects(final boolean releaseWithMedia, final WorkflowObject workflowObject, final List<Object> releaseObjects,
+                                                    final List<IDProvider> releaseElementsWithPossibleChildren) {
+        for (final IDProvider storeElement : releaseElementsWithPossibleChildren) {
+            // create workflowObject with current releasable storeElement
+            workflowObject.setStoreElement(storeElement);
+
+            // add the object itself to releaseObjects list
+            releaseObjects.add(storeElement);
+            Logging.logInfo("IDProvider Element with Id '" + storeElement.getId() + "' added to release list", LOGGER);
+            // add dependend objects to releaseObjects list
+            final Set<Object> refObjects = workflowObject.getRefObjectsFromStoreElement(releaseWithMedia, false);
+            releaseObjects.addAll(refObjects);
+
+            // logging id's only
+            for (final Object refObject : refObjects) {
+                if (refObject instanceof IDProvider) {
+                    Logging.logInfo("IDProvider referenced Element with Id '" + ((IDProvider) refObject).getId() + "' added to release list",
+                            LOGGER);
+                } else if (refObject instanceof ReferenceEntry) {
+                    final IDProvider idProvider = ((ReferenceEntry) refObject).getReferencedElement();
+                    if (idProvider != null) {
+                        Logging.logInfo("IDProvider referenced Element with Id '" + idProvider.getId() + "' added to release list", LOGGER);
+                    } else {
+                        Logging.logInfo("ReferenceEntry element is null. Broken Reference?", LOGGER);
                     }
+                } else {
+                    Logging.logInfo("Element of class '" + refObject.getClass().toString() + "' can't be fetched", LOGGER);
                 }
             }
-            resultList.add(object);
+            if (storeElement instanceof PageRef && (((PageRef) storeElement).getPage()).getReleaseStatus() != IDProvider.RELEASED) {
+                // if object is pageref, add page to release list if unreleased
+                releaseObjects.add(((PageRef) storeElement).getPage());
+            }
         }
     }
-
 }

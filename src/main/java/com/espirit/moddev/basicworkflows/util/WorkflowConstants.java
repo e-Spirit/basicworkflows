@@ -90,4 +90,12 @@ public interface WorkflowConstants {
     String IMAGE_HAS_REFERENCES = "wfImageHasReferences";
 
     String IMAGE_FOLDER_HAS_REFERENCES = "wfImageFolderHasReferences";
+
+    String WF_RECURSIVE_CHILDREN = "wfRecursiveChildren";
+
+    String MEDIA_FORM_REFNAME = "wf_releasewmedia";
+
+    String RECURSIVE_FORM_REFNAME = "wf_releaseRecursively";
+
+    String WF_OBJECTS_IN_WORKFLOW = "wfObjectsInWorkflow";
 }

@@ -27,7 +27,7 @@
 	</formats>
 	<files>
 		<file>
-			<source>target/${project.artifactId}-${project.version}-jar-with-dependencies.jar</source>
+			<source>target/${project.artifactId}-${ci.version}-jar-with-dependencies.jar</source>
 			<outputDirectory>/lib/</outputDirectory>
 		</file>
 	</files>

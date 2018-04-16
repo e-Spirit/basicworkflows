@@ -47,8 +47,7 @@ public class WfDeleteExecutable extends AbstractWorkflowExecutable {
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
         boolean deleteStatus = false;
 
         // check if delete was successful (skip if wfDoFail is set by test case)

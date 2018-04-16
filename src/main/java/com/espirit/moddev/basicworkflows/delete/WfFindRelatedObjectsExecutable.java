@@ -25,10 +25,10 @@ import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -46,14 +46,13 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
     public static final Class<?> LOGGER = WfFindRelatedObjectsExecutable.class;
 
     @Override
-    public Object execute(Map<String, Object> params) {
-        WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+    public Object execute(final Map<String, Object> params) {
+        final WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
         final WorkflowObject workflowObject = new WorkflowObject(workflowScriptContext);
-        ArrayList<Object> referencedObjects = new ArrayList<Object>();
+        final ArrayList<Object> referencedObjects = new ArrayList<Object>();
 
-        if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+        if (isStartedOnDatasource(workflowScriptContext)) {
             referencedObjects.addAll(workflowObject.getRefObjectsFromEntity());
         } else {
             referencedObjects.addAll(workflowObject.getRefObjectsFromStoreElement());
@@ -63,7 +62,7 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
             Logging.logInfo("Can be deleted " + "(" + workflowObject.getId() + ")", LOGGER);
             try {
                 workflowScriptContext.doTransition("trigger_reference_ok");
-            } catch (IllegalAccessException e) {
+            } catch (final IllegalAccessException e) {
                 Logging.logError("Workflow Delete failed!", e, LOGGER);
                 showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("deleteFailed"));
             }
@@ -71,7 +70,7 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
             Logging.logWarning("Cannot be deleted! " + "(" + workflowObject.getId() + ")", LOGGER);
             try {
                 workflowScriptContext.doTransition("trigger_reference_conflict");
-            } catch (IllegalAccessException e) {
+            } catch (final IllegalAccessException e) {
                 Logging.logError("Workflow Delete failed!", e, LOGGER);
                 // show error message
                 showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), bundle.getString("deleteFailed"));

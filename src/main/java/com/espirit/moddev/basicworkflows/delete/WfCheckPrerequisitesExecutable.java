@@ -76,8 +76,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
 
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
 
         //show warning dialog if prerequisites are not met and wfFolderCheckFail is not set
         if (getCustomAttribute(workflowScriptContext, "wfCheckPrerequisitesFail") == null) {

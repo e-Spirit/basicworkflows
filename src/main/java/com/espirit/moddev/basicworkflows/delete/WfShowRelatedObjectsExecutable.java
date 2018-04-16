@@ -21,9 +21,9 @@
 package com.espirit.moddev.basicworkflows.delete;
 
 import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
-import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 
+import com.espirit.moddev.basicworkflows.util.WorkflowSessionHelper;
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
@@ -48,10 +48,9 @@ public class WfShowRelatedObjectsExecutable extends AbstractWorkflowExecutable {
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
 
-        List<String> referencedObjects = readObjectFromSession(workflowScriptContext, "wfReferencedObjects");
+		List<String> referencedObjects = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfReferencedObjects");
         final String objectsInUse = bundle.getString("objectsInUse");
         StringBuilder notReleased = new StringBuilder(objectsInUse).append(":\n\n");
         int i = 0;

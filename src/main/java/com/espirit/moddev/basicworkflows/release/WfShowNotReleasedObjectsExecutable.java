@@ -21,13 +21,13 @@
 package com.espirit.moddev.basicworkflows.release;
 
 import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
-import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+import com.espirit.moddev.basicworkflows.util.WorkflowSessionHelper;
+
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -47,15 +47,18 @@ public class WfShowNotReleasedObjectsExecutable extends AbstractWorkflowExecutab
     @Override
     public Object execute(Map<String, Object> params) {
         final WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
 
         final StringBuilder messageBuilder = new StringBuilder();
 
         final Map<String, IDProvider.UidType>
             notReleasedElements =
-            readMapFromSession(workflowScriptContext, WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
-        final boolean brokenReferences = readBooleanFromSession(workflowScriptContext, WorkflowConstants.WF_BROKEN_REFERENCES);
+				WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
+        final boolean brokenReferences = WorkflowSessionHelper.readBooleanFromSession(workflowScriptContext, WorkflowConstants.WF_BROKEN_REFERENCES);
+        final Map<String, IDProvider.UidType>
+                    objectsInWorkflow =
+        				WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_OBJECTS_IN_WORKFLOW);
+
 
         final String releaseObjectsLabel = bundle.getString("releaseObjects");
         renderMessage(messageBuilder, notReleasedElements, releaseObjectsLabel);
@@ -69,6 +72,15 @@ public class WfShowNotReleasedObjectsExecutable extends AbstractWorkflowExecutab
             messageBuilder.append(brokenReferencesLabel);
         }
 
+       if((mapContainsItems(notReleasedElements) || brokenReferences) && !objectsInWorkflow.isEmpty()) {
+           messageBuilder.append("\n\n");
+        }
+
+       if(!objectsInWorkflow.isEmpty()) {
+            final String objectsInWorkflowLabel = bundle.getString("objectsInWorkflow");
+            renderMessage(messageBuilder, objectsInWorkflow, objectsInWorkflowLabel);
+       }
+
         showDialog(workflowScriptContext, bundle.getString("conflicts") + ":\n\n", messageBuilder.toString());
 
         try {
@@ -81,18 +93,8 @@ public class WfShowNotReleasedObjectsExecutable extends AbstractWorkflowExecutab
         return true;
     }
 
-    private static boolean readBooleanFromSession(final WorkflowScriptContext workflowScriptContext, final String key) {
-        final Boolean value = readObjectFromSession(workflowScriptContext, key);
-        return value != null && value;
-    }
-
     private static boolean mapContainsItems(final Map<String, IDProvider.UidType> map) {
         return map != null && !map.isEmpty();
-    }
-
-    private static Map<String, IDProvider.UidType> readMapFromSession(final WorkflowScriptContext workflowScriptContext, final String key) {
-        final Map<String, IDProvider.UidType> map = readObjectFromSession(workflowScriptContext, key);
-        return map == null ? Collections.<String, IDProvider.UidType>emptyMap() : map;
     }
 
     private static void renderMessage(StringBuilder message, Map<String, IDProvider.UidType> elements, String label) {

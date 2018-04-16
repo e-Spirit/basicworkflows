@@ -22,8 +22,8 @@ package com.espirit.moddev.basicworkflows.delete;
 
 import com.espirit.moddev.basicworkflows.util.AbstractWorkflowExecutable;
 import com.espirit.moddev.basicworkflows.util.Dialog;
-import com.espirit.moddev.basicworkflows.util.FsLocale;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
+import com.espirit.moddev.basicworkflows.util.WorkflowSessionHelper;
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
@@ -48,8 +48,7 @@ public class WfDeleteTestExecutable extends AbstractWorkflowExecutable {
     @Override
     public Object execute(Map<String, Object> params) {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-        ResourceBundle.clearCache();
-        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
+        final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
         boolean deleteStatus = false;
 
         // check if test delete was successful (skip if wfDoTestFail is set by test case)
@@ -73,7 +72,7 @@ public class WfDeleteTestExecutable extends AbstractWorkflowExecutable {
             try {
                 // check test case or skip if wfDoTestFail is set
                 if (isNotFailedTest(workflowScriptContext)) {
-                    List<List> lockedObjects = readObjectFromSession(workflowScriptContext, "wfLockedObjects");
+					List<List> lockedObjects = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfLockedObjects");
                     StringBuilder notReleased = new StringBuilder(bundle.getString("objectsLocked")).append(":\n\n");
                     for (List lockedObject : lockedObjects) {
                         String elementType = (String) lockedObject.get(0);
@@ -87,7 +86,7 @@ public class WfDeleteTestExecutable extends AbstractWorkflowExecutable {
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Test Delete failed!", e, LOGGER);
                 // set in integration tests
-                final String suppressDialog = readObjectFromSession(workflowScriptContext, "wfSuppressDialog");
+				final String suppressDialog = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfSuppressDialog");
                 if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
                     // show error message
                     Dialog dialog = new Dialog(workflowScriptContext);

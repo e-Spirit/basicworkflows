@@ -22,6 +22,8 @@ package com.espirit.moddev.basicworkflows.util;
 
 import de.espirit.firstspirit.access.editor.CheckboxEditorValue;
 import de.espirit.firstspirit.access.editor.value.Option;
+import de.espirit.firstspirit.access.store.Data;
+import de.espirit.firstspirit.access.store.DataValue;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
 import java.util.Set;
@@ -55,24 +57,32 @@ public class FormEvaluator {
      * @return true if the checkbox is checked.
      */
     public boolean getCheckboxValue(String varname) {
-        boolean releaseWithMedia = false;
+        boolean checkboxValue = false;
 
-        Object relwMedia = workflowScriptContext.getTask().getCustomAttributes().get("wf_releasewmedia");
+        Object relwMedia = workflowScriptContext.getTask().getCustomAttributes().get(varname);
         // test case
         if (relwMedia != null) {
             if (isReleaseMedia(relwMedia)) {
-                releaseWithMedia = true;
+                checkboxValue = true;
             }
             // standard case
         } else {
-            final CheckboxEditorValue value = (CheckboxEditorValue) workflowScriptContext.getData().get(varname).getEditor();
+            Data data = workflowScriptContext.getData();
+            if (data == null) {
+                return false;
+            }
+            DataValue dataValue = data.get(varname);
+            if (dataValue == null) {
+                return false;
+            }
+            final CheckboxEditorValue value = (CheckboxEditorValue) dataValue.getEditor();
             final Set<Option> options = value.get(workflowScriptContext.getProject().getMasterLanguage());
             for (Option option : options) {
-                releaseWithMedia = Boolean.parseBoolean((String) option.getValue());
+                checkboxValue = Boolean.parseBoolean((String) option.getValue());
             }
         }
 
-        return releaseWithMedia;
+        return checkboxValue;
     }
 
     private static boolean isReleaseMedia(Object relwMedia) {

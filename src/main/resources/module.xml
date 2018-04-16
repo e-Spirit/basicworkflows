@@ -20,10 +20,10 @@
   -->
 
 <module>
-    <name>${project.artifactId}</name>
+    <name>${basicworkflows.moduleName}</name>
     <displayname>${project.displayName}</displayname>
     <version>${project.version}</version>
-    <description>${project.artifactId}</description>
+    <description>${basicworkflows.moduleName}</description>
     <vendor>com.espirit.moddev</vendor>
     <components>
 

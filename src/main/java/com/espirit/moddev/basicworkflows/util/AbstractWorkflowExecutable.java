@@ -20,12 +20,22 @@
 
 package com.espirit.moddev.basicworkflows.util;
 
-import de.espirit.firstspirit.access.script.Executable;
-import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
-
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 
+import de.espirit.firstspirit.access.ReferenceEntry;
+import de.espirit.firstspirit.access.script.Executable;
+import de.espirit.firstspirit.access.store.IDProvider;
+import de.espirit.firstspirit.access.store.Store;
+import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
+import de.espirit.firstspirit.access.store.sitestore.PageRef;
+import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.agency.StoreAgent;
 
 /**
  * Abstract WorkflowExecutable that contains the basic methods used in all executables.
@@ -35,14 +45,55 @@ import java.util.Map;
  */
 public abstract class AbstractWorkflowExecutable implements Executable {
 
-    /**
-     * The logging class to use.
-     */
-    public static final Class<?> LOGGER = AbstractWorkflowExecutable.class;
 
+    /**
+     * Is started on a datasource record?.
+     *
+     * @param workflowScriptContext the workflow script context
+     * @return the boolean
+     */
+    protected static boolean isStartedOnDatasource(final WorkflowScriptContext workflowScriptContext) {
+        return workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable;
+    }
+
+    /**
+     * Adds the elements from objectsToAdd to the resultList list excluding the elements listed in objectsToExclude
+     *
+     * @param objectsToAdd The objects to release
+     * @param objectsToExclude Uids of objects to exclude from list
+     * @param resultList The resulting list of objects to release
+     */
+    protected static void addReferencesExcludingPageRefsFromSession(final Collection<Object> objectsToAdd,
+                                                                    final List<String> objectsToExclude, final List<Object> resultList) {
+        for (final Object object : objectsToAdd) {
+            if (object instanceof ReferenceEntry) {
+                final ReferenceEntry refEntry = (ReferenceEntry) object;
+                if (refEntry.getReferencedElement() instanceof PageRef) {
+                    final PageRef pageRef = (PageRef) refEntry.getReferencedElement();
+                    if (objectsToExclude.contains(pageRef.getUid())) {
+                        continue;
+                    }
+                }
+            }
+            resultList.add(object);
+        }
+    }
+
+    /**
+     * Load resource bundle.
+     *
+     * @param workflowScriptContext the workflow script context
+     * @return the resource bundle
+     */
+    protected static ResourceBundle loadResourceBundle(final WorkflowScriptContext workflowScriptContext) {
+        ResourceBundle.clearCache();
+        final FsLocale fsLocale = new FsLocale(workflowScriptContext);
+        final Locale locale = fsLocale.get();
+        return ResourceBundle.getBundle(WorkflowConstants.MESSAGES, locale);
+    }
 
     @Override
-    public final Object execute(Map<String, Object> args, Writer out, Writer err) {
+    public final Object execute(final Map<String, Object> args, final Writer out, final Writer err) {
         return execute(args);
     }
 
@@ -53,11 +104,11 @@ public abstract class AbstractWorkflowExecutable implements Executable {
      * @param message               The message to display.
      * @param workflowScriptContext The context to use.
      */
-    protected void showDialog(WorkflowScriptContext workflowScriptContext, String title, String message) {
+    protected void showDialog(final WorkflowScriptContext workflowScriptContext, final String title, final String message) {
         // set in integration tests
         final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
         if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
-            Dialog dialog = new Dialog(workflowScriptContext);
+            final Dialog dialog = new Dialog(workflowScriptContext);
             dialog.showInfo(title, message);
         }
     }
@@ -71,12 +122,12 @@ public abstract class AbstractWorkflowExecutable implements Executable {
      * @param question              The question to display.
      * @return Boolean indicating whether the question was answered with yes or no
      */
-    protected boolean showQuestionDialog(WorkflowScriptContext workflowScriptContext, String title, String question) {
+    protected boolean showQuestionDialog(final WorkflowScriptContext workflowScriptContext, final String title, final String question) {
         // set in integration tests
         final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
         if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
 
-            Dialog dialog = new Dialog(workflowScriptContext);
+            final Dialog dialog = new Dialog(workflowScriptContext);
 
             return dialog.showQuestion(Dialog.QuestionType.YES_NO, title, question);
 
@@ -94,21 +145,28 @@ public abstract class AbstractWorkflowExecutable implements Executable {
      * @param attribute             The attribute to get the value for.
      * @return the value.
      */
-    protected static Object getCustomAttribute(WorkflowScriptContext workflowScriptContext, String attribute) {
+    protected static Object getCustomAttribute(final WorkflowScriptContext workflowScriptContext, final String attribute) {
         return workflowScriptContext.getTask().getCustomAttributes().get(attribute);
     }
 
-    /**
-     * Read object from session.
-     *
-     * @param <T>                   the type parameter
-     * @param workflowScriptContext the workflow script context
-     * @param key                   the key
-     * @return the t
-     */
-    protected static <T> T readObjectFromSession(final WorkflowScriptContext workflowScriptContext, final String key) {
-        return (T) workflowScriptContext.getSession().get(key); //NOSONAR
+
+
+    protected List<IDProvider> loadChildrenList(final WorkflowScriptContext workflowScriptContext, final Map<Long, Store.Type> childrenIdMap) {
+        final List<IDProvider> childrenList = new ArrayList<>();
+        if (childrenIdMap != null) {
+            final StoreAgent storeAgent = workflowScriptContext.requireSpecialist(StoreAgent.TYPE);
+            for (final Map.Entry<Long, Store.Type> childrenId : childrenIdMap.entrySet()) {
+                childrenList.add(storeAgent.getStore(childrenId.getValue()).getStoreElement(childrenId.getKey()));
+            }
+        }
+        return childrenList;
     }
+
+
+    protected static void writeObjectToSession(final WorkflowScriptContext workflowScriptContext, final String key, final Object object) {
+        workflowScriptContext.getSession().put(key, object);
+    }
+
 
     /**
      * Is not failed.
@@ -116,12 +174,12 @@ public abstract class AbstractWorkflowExecutable implements Executable {
      * @param workflowScriptContext the workflow script context
      * @return the boolean
      */
-    protected static boolean isNotFailed(WorkflowScriptContext workflowScriptContext) {
+    protected static boolean isNotFailed(final WorkflowScriptContext workflowScriptContext) {
         final Object wfDoFail = getCustomAttribute(workflowScriptContext, "wfDoFail");
         return wfDoFail == null || WorkflowConstants.FALSE.equals(wfDoFail);
     }
 
-    protected static boolean isNotFailedTest(WorkflowScriptContext workflowScriptContext) {
+    protected static boolean isNotFailedTest(final WorkflowScriptContext workflowScriptContext) {
         return getCustomAttribute(workflowScriptContext, "wfDoTestFail") == null || WorkflowConstants.FALSE.equals(
             getCustomAttribute(workflowScriptContext, "wfDoTestFail"));
     }

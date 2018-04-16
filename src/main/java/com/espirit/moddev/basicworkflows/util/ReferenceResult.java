@@ -46,6 +46,10 @@ public class ReferenceResult {
      * This variable determines if there are broken references.
      */
     private boolean noBrokenReferences;
+    /**
+     * This variable determines if there are no objects in a workflow.
+     */
+    private boolean noObjectsInWorkflow;
 
     /**
      * Constructor for ReferenceResult.
@@ -55,6 +59,7 @@ public class ReferenceResult {
         notMediaReleased = true;
         allObjectsReleased = true;
         noBrokenReferences = true;
+        noObjectsInWorkflow = true;
     }
 
     /**
@@ -80,7 +85,7 @@ public class ReferenceResult {
      *
      * @return true if only media is referenced.
      */
-    public boolean isOnlyMedia() {
+    private boolean isOnlyMedia() {
         return onlyMedia;
     }
 
@@ -98,7 +103,7 @@ public class ReferenceResult {
      *
      * @return true if not media and released.
      */
-    public boolean isNotMediaReleased() {
+    private boolean isNotMediaReleased() {
         return notMediaReleased;
     }
 
@@ -116,7 +121,7 @@ public class ReferenceResult {
      *
      * @return true if all objects are released.
      */
-    public boolean isAllObjectsReleased() {
+    private boolean isAllObjectsReleased() {
         return allObjectsReleased;
     }
 
@@ -150,6 +155,24 @@ public class ReferenceResult {
             allReleased = true;
         }
 
-        return !(allReleased && isNoBrokenReferences());
+        return !(allReleased && isNoBrokenReferences() && hasNoObjectsInWorkflow());
+    }
+
+    /**
+     * Setter for the field allObjectsReleased.
+     *
+     * @param noObjectsInWorkflow Set to false some objects are in a workflow.
+     */
+    public void setNoObjectsInWorkflow(boolean noObjectsInWorkflow) {
+        this.noObjectsInWorkflow = noObjectsInWorkflow;
+    }
+
+    /**
+     * Check if there are no objects in a workflow.
+     *
+     * @return the boolean
+     */
+    private boolean hasNoObjectsInWorkflow() {
+        return noObjectsInWorkflow;
     }
 }
