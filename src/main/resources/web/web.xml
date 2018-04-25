@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <!--
-  //**********************************************************************
-  basicworkflows
+  ========================LICENSE_START=================================
+  BasicWorkflows Module
   %%
-  Copyright (C) 2012 - 2013 e-Spirit AG
+  Copyright (C) 2012 - 2018 e-Spirit AG
   %%
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
-  *********************************************************************//*
+  =========================LICENSE_END==================================
   -->
 
 <web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
