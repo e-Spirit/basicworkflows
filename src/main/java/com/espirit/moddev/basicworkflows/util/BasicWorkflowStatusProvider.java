@@ -22,7 +22,6 @@ package com.espirit.moddev.basicworkflows.util;
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.store.IDProvider;
-import de.espirit.firstspirit.access.store.StoreElement;
 import de.espirit.firstspirit.access.store.contentstore.Dataset;
 import de.espirit.firstspirit.access.store.pagestore.Page;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
@@ -32,11 +31,11 @@ import de.espirit.firstspirit.workflow.WorkflowGroup;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 
+import de.espirit.firstspirit.access.store.sitestore.SiteStoreFolder;
 
 /**
  * WorkflowStatusProvider that is used for the basic workflows. Distinguishes between Page, PageReference, DocumentGroup and Dataset.
@@ -47,97 +46,62 @@ import java.util.ResourceBundle;
 public class BasicWorkflowStatusProvider implements WebeditElementStatusProviderPlugin {
 
     /**
-     * the context to use.
+     * The context to use.
      */
     private BaseContext context;
+
     public static final Class<?> LOGGER = BasicWorkflowStatusProvider.class;
 
     @Override
     public State getReleaseState(final IDProvider element) {
-        State releaseStateResult = State.RELEASED;
-        final EnumMap<State, Boolean> releaseStatus = new EnumMap<State, Boolean>(State.class);
+        State state;
 
-        // check workflow element status
-        if (isNotReleased(element)) {
-            releaseStatus.put(State.CHANGED, true);
-        }
-        if (element.hasTask()) {
-            releaseStatus.put(State.IN_WORKFLOW, true);
+        // Check the element
+        state = getElementReleaseState(element);
+        if (state != State.RELEASED) {
+            return state;
         }
 
-        // check status of page and pagereffolder as well if element is a pageref
-        if (isPageRef(element)) {
+        // Check the parents
+        final List<SiteStoreFolder> parentFolders = getParentFolders(element);
+        for (final SiteStoreFolder parent : parentFolders) {
+            state = getElementReleaseState(parent);
+            if (state != State.RELEASED) {
+                return state;
+            }
+        }
+
+        // Check the referencing page
+        if (element instanceof PageRef) {
             final PageRef pageRef = (PageRef) element;
-            if (isNotReleased(pageRef.getPage()) || isNotReleased(element.getParent())) {
-                releaseStatus.put(State.CHANGED, true);
+            state = getElementReleaseState(pageRef.getPage());
+            if (state != State.RELEASED) {
+                return state;
             }
-            if (pageRef.getPage().hasTask() || element.getParent().hasTask()) {
-                releaseStatus.put(State.IN_WORKFLOW, true);
-            }
-            // check status of pagerefs and pages as well if element is a documentgroup
-        } else if (element instanceof DocumentGroup) {
-            final DocumentGroup documentGroup = (DocumentGroup) element;
-            for (final StoreElement storeElement : documentGroup.getChildren()) {
-                if (storeElement instanceof PageRef) {
-                    final PageRef pageRef = (PageRef) storeElement;
-                    if (isNotReleased(pageRef) || isNotReleased(pageRef.getPage())) {
-                        releaseStatus.put(State.CHANGED, true);
-                    }
-                    if (pageRef.hasTask() || pageRef.getPage().hasTask()) {
-                        releaseStatus.put(State.IN_WORKFLOW, true);
-                    }
-                }
-            }
-        }
-        // override status if element is a pageref or a documentgroup
-        if (hasState(releaseStatus, State.IN_WORKFLOW)) {
-            releaseStateResult = State.IN_WORKFLOW;
-        } else if (hasState(releaseStatus, State.CHANGED)) {
-            releaseStateResult = State.CHANGED;
+
         }
 
-        return releaseStateResult;
-    }
-
-    /**
-     * Checks if a given state if contained in the given State map.
-     *
-     * @param states the State Map
-     * @param state  the State to look for in the Map
-     * @return true if the State is contained in the State Map
-     */
-    private static boolean hasState(final Map<State, Boolean> states, final State state) {
-        return states.get(state) != null && states.get(state);
-    }
-
-    /**
-     * Checks if the given element is currently released.
-     *
-     * @param element the element
-     * @return true if the element is released
-     */
-    private static boolean isNotReleased(final IDProvider element) {
-        return element.isReleaseSupported() && element.getReleaseStatus() != IDProvider.RELEASED;
+        return state;
     }
 
     @Override
     public List<WorkflowGroup> getWorkflowGroups(final IDProvider element) {
-        final List<WorkflowGroup> collectedWorkflowGroups = new ArrayList<WorkflowGroup>();
+        final List<WorkflowGroup> collectedWorkflowGroups = new ArrayList<>();
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
 
-        if (isPageRef(element) && pageHasTask((PageRef) element)) {
+        if (element instanceof PageRef && pageHasTask((PageRef) element)) {
             final WorkflowGroup pageGroup = Factory.create(bundle.getString("page"),
-                                                           Collections.<IDProvider>singletonList(((PageRef) element).getPage()));
+                Collections.<IDProvider>singletonList(((PageRef) element).getPage()));
             collectedWorkflowGroups.add(pageGroup);
-        } else if (isPageRef(element) || element instanceof Page) {
+        } else if (element instanceof PageRef || element instanceof Page) {
             final WorkflowGroup pageRefGroup = Factory.create(bundle.getString("pageReference"), Collections.singletonList(element));
             collectedWorkflowGroups.add(pageRefGroup);
         } else if (element instanceof DocumentGroup) {
             final WorkflowGroup documentGroup = Factory.create(bundle.getString("documentGroup"), Collections.singletonList(element));
             collectedWorkflowGroups.add(documentGroup);
         } else if (element instanceof Dataset) {
-            final List<IDProvider> dataSets = new ArrayList<IDProvider>();
+            final List<IDProvider> dataSets = new ArrayList<>();
             dataSets.add(element);
             final WorkflowGroup workflowDataset = Factory.create(bundle.getString("dataset"), dataSets);
             collectedWorkflowGroups.add(workflowDataset);
@@ -150,12 +114,56 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         return collectedWorkflowGroups;
     }
 
-    private static boolean pageHasTask(final PageRef element) {
-        return element.getPage() != null && element.getPage().hasTask();
+    /**
+     * Returns the release state for the store element.
+     *
+     * @param element
+     * @return
+     */
+    private static State getElementReleaseState(final IDProvider element) {
+        if (element.hasTask()) {
+            return State.IN_WORKFLOW;
+        } else if (isNotReleased(element)) {
+            return State.CHANGED;
+        }
+
+        return State.RELEASED;
     }
 
-    private static boolean isPageRef(final IDProvider element) {
-        return element instanceof PageRef;
+    /**
+     * Returns all parent element folders.
+     *
+     * @param element the pageRef element
+     * @return list of parent elements (folder)
+     */
+    private static LinkedList<SiteStoreFolder> getParentFolders(IDProvider element) {
+        LinkedList<SiteStoreFolder> parentFolders = new LinkedList<>();
+
+        final IDProvider parentElement = element.getParent();
+        if (parentElement != null && !"root".equals(parentElement.getUid())) {
+            parentFolders = getParentFolders(parentElement);
+        }
+
+        if (parentElement instanceof SiteStoreFolder) {
+            final SiteStoreFolder parentFolder = (SiteStoreFolder) parentElement;
+            parentFolders.addFirst(parentFolder);
+        }
+
+        return parentFolders;
+    }
+
+    /**
+     * Checks if the given element is currently released.
+     *
+     * @param element the element
+     * @return true if the element is released
+     */
+    private static boolean isNotReleased(final IDProvider element) {
+        return element.isReleaseSupported() && element.getReleaseStatus() != IDProvider.RELEASED;
+    }
+
+    private static boolean pageHasTask(final PageRef element) {
+        return element.getPage() != null && element.getPage().hasTask();
     }
 
     @Override

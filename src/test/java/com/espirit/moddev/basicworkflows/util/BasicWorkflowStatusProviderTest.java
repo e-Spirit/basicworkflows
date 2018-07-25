@@ -109,6 +109,7 @@ public class BasicWorkflowStatusProviderTest {
         assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
     }
 
+    
     @Theory
     public void testGetReleaseStatePage(final ReleaseStateChangedTestData testData) throws Exception {
 
@@ -123,39 +124,13 @@ public class BasicWorkflowStatusProviderTest {
         when(page.getReleaseStatus()).thenReturn(testData.getProvidedState());
         when(page.hasTask()).thenReturn(testData.hasTasks());
         when(element.getParent()).thenReturn(element);
+        when(element.getUid()).thenReturn("root");
 
         final WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(element);
 
         assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
     }
-
-
-    @Theory
-    public void testGetReleaseStateDocumentGroup(final ReleaseStateChangedTestData testData) throws Exception {
-
-        final DocumentGroup group = mock(DocumentGroup.class);
-        final PageRef element = mock(PageRef.class);
-        final Page page = mock(Page.class);
-
-        final Listable<StoreElement> listable = new CollectionListable<StoreElement>(Arrays.asList((StoreElement) element));
-
-        when(group.getChildCount()).thenReturn(1);
-        when(group.getChildren()).thenReturn(listable);
-
-        when(element.isReleaseSupported()).thenReturn(Boolean.TRUE);
-        when(element.getReleaseStatus()).thenReturn(IDProvider.RELEASED);
-        when(element.hasTask()).thenReturn(Boolean.FALSE);
-        when(element.getPage()).thenReturn(page);
-        when(page.isReleaseSupported()).thenReturn(testData.isReleaseSupported());
-        when(page.getReleaseStatus()).thenReturn(testData.getProvidedState());
-        when(page.hasTask()).thenReturn(testData.hasTasks());
-        when(element.getParent()).thenReturn(element);
-
-        final WebeditElementStatusProviderPlugin.State releaseState = testling.getReleaseState(group);
-
-        assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
-    }
-
+    
     @DataPoints
     public static IDProvider[] elements = {mock(Page.class), mock(PageRef.class), mock(Dataset.class), mock(DocumentGroup.class)};
 

@@ -234,7 +234,7 @@ public class WfReleaseExecutable extends AbstractWorkflowExecutable {
         List<StartNode> neverReleasedStartNodes = new ArrayList<>();
 
         final IDProvider parentElement = storeElement.getParent();
-        if (parentElement != null && !parentElement.getUid().equals("root")) {
+        if (parentElement != null && !"root".equals(parentElement.getUid())) {
             neverReleasedStartNodes = getNeverReleasedStartNodes(parentElement);
         }
 
