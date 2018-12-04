@@ -28,11 +28,11 @@ import com.espirit.moddev.basicworkflows.util.StoreUtil;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.AccessUtil;
 import de.espirit.firstspirit.access.ReferenceEntry;
-import de.espirit.firstspirit.access.ServerActionHandle;
+import de.espirit.firstspirit.access.store.BasicElementInfo;
+import de.espirit.firstspirit.access.store.BasicInfo;
 import de.espirit.firstspirit.access.store.IDProvider;
-import de.espirit.firstspirit.access.store.ReleaseProgress;
+import de.espirit.firstspirit.access.store.ReleaseProblem;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
@@ -50,7 +50,9 @@ import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
 import de.espirit.firstspirit.access.store.sitestore.SiteStoreRoot;
 import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.agency.OperationAgent;
 import de.espirit.firstspirit.agency.QueryAgent;
+import de.espirit.firstspirit.store.operations.ReleaseOperation;
 import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
@@ -136,8 +138,8 @@ public class ReleaseObject {
      */
     public boolean release(final boolean checkOnly, final boolean releaseRecursively) {
         final boolean result;
-        final Set<Long> lockedList = new HashSet<>();
-        final Set<Long> permList = new HashSet<>();
+        final Set<BasicInfo> lockedList = new HashSet<>();
+        final Set<BasicInfo> permList = new HashSet<>();
 
         // release entity
         if (this.entity != null) {
@@ -168,35 +170,42 @@ public class ReleaseObject {
         }
     }
 
-    private void showDeniedElementsIfAny(final Set<Long> permList) {
+    private void showDeniedElementsIfAny(final Set<BasicInfo> permList) {
         if (!permList.isEmpty()) {
             final StringBuilder errorMsg = new StringBuilder(bundle.getString("errorPermission")).append(":\n\n");
             Logging.logInfo("MissingPermissionElement", LOGGER);
-            for (final Long missing : permList) {
-                Logging.logInfo("  id:" + missing, LOGGER);
-                errorMsg.append(createErrorString(missing));
-            }
+            createErrorMessage(permList, errorMsg);
             dialog.showError(bundle.getString("errorPermission"), errorMsg.toString());
         }
     }
 
-    private void showLockedElementsIfAny(final Set<Long> lockedList) {
+    private void createErrorMessage(Set<BasicInfo> infoList, StringBuilder errorMsg) {
+        for (final BasicInfo missing : infoList) {
+            long missingId = 0;
+            if(!missing.isEntity()) {
+                BasicElementInfo basicElementInfo = (BasicElementInfo) missing;
+                missingId = basicElementInfo.getNodeId();
+            }
+            Logging.logInfo("  id:" + missingId, LOGGER);
+            errorMsg.append(createErrorString(missingId));
+        }
+    }
+
+    private void showLockedElementsIfAny(final Set<BasicInfo> lockedList) {
         if (!lockedList.isEmpty()) {
             Logging.logInfo("LockFailedElements:", LOGGER);
             final StringBuilder errorMsg = new StringBuilder(bundle.getString("errorLocked")).append(":\n\n");
-
-            for (final Object locked : lockedList) {
-                Logging.logInfo("  id:" + locked, LOGGER);
-                errorMsg.append(createErrorString(locked));
-            }
+            createErrorMessage(lockedList, errorMsg);
             dialog.showError(bundle.getString("errorLocked"), errorMsg.toString());
         }
     }
 
-    private boolean releaseStoreElement(final boolean checkOnly, final Set<Long> lockedList, final Set<Long> permList, final boolean releaseRecursively) {
+    private boolean releaseStoreElement(final boolean checkOnly, final Set<BasicInfo> lockedList, final Set<BasicInfo> permList, final boolean releaseRecursively) {
         boolean result = true;
 
-        ServerActionHandle<? extends ReleaseProgress, Boolean> handle = null;
+        OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+        ReleaseOperation releaseOperation = operationAgent.getOperation(ReleaseOperation.TYPE);
+        ReleaseOperation.ReleaseResult releaseResult = null;
 
         final List<IDProvider> customReleaseElements = getCustomReleaseElements(WorkflowConstants.RELEASE_PAGEREF_ELEMENTS);
 
@@ -261,8 +270,7 @@ public class ReleaseObject {
                                         } else {
                                             releaseType = IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE;
                                         }
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, true, false, releaseType);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(releaseType).perform(currentObjForRelease);
                                     } else if (isPageRefFolder(currentObjForRelease)) {
                                         // in order to decide if a pageref can be released, one has
                                         // to check if the referenced page exists
@@ -272,46 +280,27 @@ public class ReleaseObject {
                                         } else {
                                             releaseType = IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE;
                                         }
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, true, releaseRecursively, releaseType);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).recursive(releaseRecursively).ensureAccessibility(true).dependentReleaseType(releaseType).perform(currentObjForRelease);
                                     } else if (isPage(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, true, false,
-                                            IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (isPageFolder(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, true, releaseRecursively,
-                                                IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(releaseRecursively).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (isDocumentGroup(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, true, false,
-                                            IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (isMedia(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, true, false,
-                                            IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (isMediaFolder(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, true, releaseRecursively,
-                                                IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(releaseRecursively).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (isGcaPage(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, false, false,
-                                            IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (isGcaFolder(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, false, releaseRecursively,
-                                                IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(releaseRecursively) .dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (currentObjForRelease instanceof ProjectProperties) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, false, false,
-                                            IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
-
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     } else if (isSiteStoreRoot(currentObjForRelease)) {
-                                        handle = AccessUtil.release(currentObjForRelease, checkOnly, false, releaseRecursively,
-                                                IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE);
+                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(releaseRecursively).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
                                     }
-
-                                    result = handleResult(lockedList, permList, handle, currentObjForRelease);
+                                   result = handleResult(lockedList, permList, releaseResult, currentObjForRelease);
                                     if (currentObjForRelease.equals(workflowScriptContext.getElement())) {
                                         currentObjForRelease.setLock(true, false);
                                     }
@@ -400,33 +389,34 @@ public class ReleaseObject {
     }
 
 
-    private static boolean handleResult(final Set<Long> lockedList, final Set<Long> permList, final ServerActionHandle<? extends ReleaseProgress, Boolean> handle,
-                                        final IDProvider idProvider) {
+    private static boolean handleResult(final Set<BasicInfo> lockedList, final Set<BasicInfo> permList, ReleaseOperation.ReleaseResult releaseResult,
+                                            final IDProvider idProvider) {
         boolean result = true;
-        if (handle != null) {
-            try {
-                handle.checkAndThrow();
-                result = handle.getResult();
-                Logging.logInfo("Release Result: " + result, LOGGER);
-                final ReleaseProgress progress = handle.getProgress(true);
-                final Set<Long> lockedFailed = progress.getLockFailedElements();
-                final Set<Long> missingPermission = progress.getMissingPermissionElements();
-                Logging.logInfo("Released Elements:", LOGGER);
-                for (final Long released : progress.getReleasedElements()) {
-                    Logging.logInfo("  id:" + released, LOGGER);
+        try {
+            Logging.logInfo("Release Result: " + releaseResult.isSuccessful(), LOGGER);
+
+            final Set<BasicInfo> lockedFailed = releaseResult.getProblematicElements().get(ReleaseProblem.LOCK_FAILED);
+            final Set<BasicInfo> missingPermission = releaseResult.getProblematicElements().get(ReleaseProblem.MISSING_PERMISSION);
+            Logging.logInfo("Released Elements:", LOGGER);
+            for (final BasicInfo released : releaseResult.getReleasedElements()) {
+                if(!released.isEntity()) {
+                    Logging.logInfo("  id:" + ((BasicElementInfo) released).getNodeId(), LOGGER);
+                } else {
+                    Logging.logInfo("  name:" + released.getName(), LOGGER);
                 }
-                if (lockedFailed != null && !lockedFailed.isEmpty()) {
-                    lockedList.addAll(lockedFailed);
-                    result = false;
-                }
-                if (missingPermission != null && !missingPermission.isEmpty()) {
-                    permList.addAll(missingPermission);
-                    result = false;
-                }
-            } catch (final Exception e) {
-                Logging.logError("Exception during Release of " + idProvider, e, LOGGER);
+            }
+            if (lockedFailed != null && !lockedFailed.isEmpty()) {
+
+                lockedList.addAll(lockedFailed);
                 result = false;
             }
+            if (missingPermission != null && !missingPermission.isEmpty()) {
+                permList.addAll(missingPermission);
+                result = false;
+            }
+        } catch (final Exception e) {
+                        Logging.logError("Exception during Release of " + idProvider, e, LOGGER);
+                        result = false;
         }
         return result;
     }

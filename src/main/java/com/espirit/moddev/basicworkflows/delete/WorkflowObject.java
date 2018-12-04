@@ -1,5 +1,4 @@
-/*-
- * ========================LICENSE_START=================================
+/*
  * BasicWorkflows Module
  * %%
  * Copyright (C) 2012 - 2018 e-Spirit AG
@@ -7,15 +6,14 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * =========================LICENSE_END==================================
  */
 package com.espirit.moddev.basicworkflows.delete;
 
@@ -32,6 +30,7 @@ import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
 import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
 import de.espirit.firstspirit.access.store.globalstore.GCAPage;
+import de.espirit.firstspirit.access.store.globalstore.GlobalContentArea;
 import de.espirit.firstspirit.access.store.globalstore.ProjectProperties;
 import de.espirit.firstspirit.access.store.mediastore.Media;
 import de.espirit.firstspirit.access.store.mediastore.MediaFolder;
@@ -42,7 +41,6 @@ import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
 import de.espirit.firstspirit.access.store.templatestore.*;
-import de.espirit.firstspirit.store.access.globalstore.GlobalContentAreaImpl;
 import de.espirit.or.schema.Entity;
 
 import java.util.ArrayList;
@@ -104,7 +102,7 @@ public class WorkflowObject {
      * @return the list of referenced objects.
      */
     public List<Object> getRefObjectsFromEntity() {
-        ArrayList<Object> referencedObjects = new ArrayList<Object>();
+        ArrayList<Object> referencedObjects = new ArrayList<>();
 
         for (ReferenceEntry referenceEntry : content2.getSchema().getIncomingReferences(entity)) {
             referencedObjects.add(referenceEntry.getReferencedObject());
@@ -120,7 +118,7 @@ public class WorkflowObject {
      * @return the list of referenced objects.
      */
     public List<Object> getRefObjectsFromStoreElement() {
-        ArrayList<Object> referencedObjects = new ArrayList<Object>();
+        ArrayList<Object> referencedObjects = new ArrayList<>();
 
         if (storeElement instanceof PageRef) {
             // add outgoing references
@@ -159,7 +157,7 @@ public class WorkflowObject {
             }
 /** documentation example - end **/
 
-        } else if (storeElement instanceof GlobalContentAreaImpl) {
+        } else if (storeElement instanceof GlobalContentArea) {
             // Element is a content folder object -> aborting" (make sure this test occurs before the gcafolder-test)
             abortDeletion("deleteGCAnotPossible");
 
@@ -218,7 +216,7 @@ public class WorkflowObject {
      * @return the list of references.
      */
     private static List<IDProvider> getReferences(StoreElement storeElement) {
-        List<IDProvider> references = new ArrayList<IDProvider>();
+        List<IDProvider> references = new ArrayList<>();
 
         // add outgoing references
         for (ReferenceEntry referenceEntry : storeElement.getIncomingReferences()) {
@@ -235,7 +233,7 @@ public class WorkflowObject {
      * @param refObjects The list of references to store in the session.
      */
     public void storeReferences(List<Object> refObjects) {
-        List<String> referencedObjects = new ArrayList<String>();
+        List<String> referencedObjects = new ArrayList<>();
         for (Object obj : refObjects) {
             if (obj instanceof Section) {
                 Section<?> section = (Section) obj;

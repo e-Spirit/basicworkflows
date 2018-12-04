@@ -1,5 +1,4 @@
-/*-
- * ========================LICENSE_START=================================
+/*
  * BasicWorkflows Module
  * %%
  * Copyright (C) 2012 - 2018 e-Spirit AG
@@ -7,15 +6,14 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * =========================LICENSE_END==================================
  */
 package com.espirit.moddev.basicworkflows.release;
 
@@ -536,15 +534,14 @@ class WorkflowObject {
         addOutgoingReferences(storeElement, references, releaseWithMedia);
 
         // add outgoing references of parent objects if element was never released before
-        if (isNeverReleased((IDProvider) storeElement)) {
-            if (!releaseRecursively || notInChildList()) {
-                StoreElement elem = storeElement;
-                while (elem.getParent() != null) {
-                    elem = elem.getParent();
-                    addOutgoingReferences(elem, references, releaseWithMedia);
-                }
+        if ((isNeverReleased((IDProvider) storeElement)) && (!releaseRecursively || notInChildList())) {
+            StoreElement elem = storeElement;
+            while (elem.getParent() != null) {
+                elem = elem.getParent();
+                addOutgoingReferences(elem, references, releaseWithMedia);
             }
         }
+
 
         //Special cases in ContentCreator
         if (workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
@@ -558,14 +555,12 @@ class WorkflowObject {
 
     private void addParentFolderIfChanged(final Set<Object> references) {
         // add parent folder if that has changed (only used in webedit workflow)
-        if (isChanged((IDProvider) storeElement)) {
-            if (!releaseRecursively || notInChildList()) {
-                StoreElement elem = storeElement;
-                if (elem.getParent() != null) {
-                    elem = elem.getParent();
-                    if (isChanged((IDProvider) elem)) {
-                        references.add(elem);
-                    }
+        if ((isChanged((IDProvider) storeElement)) && (!releaseRecursively || notInChildList())) {
+            StoreElement elem = storeElement;
+            if (elem.getParent() != null) {
+                elem = elem.getParent();
+                if (isChanged((IDProvider) elem)) {
+                    references.add(elem);
                 }
             }
         }
@@ -574,14 +569,12 @@ class WorkflowObject {
 
     private void addParentFoldersInCaseOfMovedFolder(final Set<Object> references) {
         // add parent folders in case of a moved folder (only used in webedit workflow)
-        if (isReleased((IDProvider) storeElement)) {
-            if (!releaseRecursively || notInChildList()) {
-                StoreElement elem = storeElement;
-                while (elem.getParent() != null) {
-                    elem = elem.getParent();
-                    if (isChanged((IDProvider) elem)) {
-                        references.add(elem);
-                    }
+        if ((isReleased((IDProvider) storeElement)) && (!releaseRecursively || notInChildList())) {
+            StoreElement elem = storeElement;
+            while (elem.getParent() != null) {
+                elem = elem.getParent();
+                if (isChanged((IDProvider) elem)) {
+                    references.add(elem);
                 }
             }
         }

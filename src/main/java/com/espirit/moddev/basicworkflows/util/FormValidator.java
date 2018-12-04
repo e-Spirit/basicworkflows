@@ -1,5 +1,4 @@
-/*-
- * ========================LICENSE_START=================================
+/*
  * BasicWorkflows Module
  * %%
  * Copyright (C) 2012 - 2018 e-Spirit AG
@@ -7,15 +6,14 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * =========================LICENSE_END==================================
  */
 package com.espirit.moddev.basicworkflows.util;
 
@@ -30,15 +28,14 @@ import de.espirit.firstspirit.agency.LanguageAgent;
 import de.espirit.firstspirit.agency.MultiFormValidationReport;
 import de.espirit.firstspirit.agency.SpecialistsBroker;
 import de.espirit.firstspirit.agency.ValidationAgent;
-import de.espirit.firstspirit.store.access.globalstore.ProjectPropertiesImpl;
 import de.espirit.or.schema.Entity;
 
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Set;
 
 import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
+import de.espirit.firstspirit.access.store.globalstore.ProjectProperties;
 
 /**
  * Convenience class to determine if a form is valid.
@@ -92,7 +89,7 @@ public class FormValidator {
      * @param entity     The Entity to check.
      * @return The error String or null.
      */
-    private String isValid(@Nullable IDProvider idProvider, @Nullable Content2 content2, @Nullable Entity entity) {
+    private String isValid(IDProvider idProvider, Content2 content2, Entity entity) {
         MultiFormValidationReport validationReportsRel;
         SpecialistsBroker broker = workflowScriptContext.getUserService().getConnection().getBroker();
         BrokerAgent brokerAgent = broker.requireSpecialist(BrokerAgent.TYPE);
@@ -115,7 +112,7 @@ public class FormValidator {
                 if (idProvider instanceof Section) {
                     // section has no uid so show page instead
                     element = "\n" + idProvider.getParent().getParent().getElementType() + ": " + idProvider.getParent().getParent().getUid() + "\n";
-                } else if (idProvider instanceof ProjectPropertiesImpl || idProvider instanceof GCAFolder ) {
+                } else if (idProvider instanceof ProjectProperties || idProvider instanceof GCAFolder ) {
                     // element uid for error msg
                     element = "\n" + idProvider.getElementType() + "\n";
                 } else {

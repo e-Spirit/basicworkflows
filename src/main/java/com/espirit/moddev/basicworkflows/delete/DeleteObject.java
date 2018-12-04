@@ -19,20 +19,15 @@
  */
 package com.espirit.moddev.basicworkflows.delete;
 
-import com.espirit.moddev.basicworkflows.util.Dialog;
-import com.espirit.moddev.basicworkflows.util.FsLocale;
-import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
-
 import de.espirit.common.base.Logging;
-import de.espirit.firstspirit.access.AccessUtil;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
-import de.espirit.firstspirit.access.ServerActionHandle;
-import de.espirit.firstspirit.access.store.DeleteProgress;
+import de.espirit.firstspirit.access.store.BasicElementInfo;
+import de.espirit.firstspirit.access.store.BasicInfo;
 import de.espirit.firstspirit.access.store.ElementDeletedException;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.LockException;
-import de.espirit.firstspirit.access.store.ReleaseProgress;
+import de.espirit.firstspirit.access.store.ReleaseProblem;
 import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.StoreElement;
 import de.espirit.firstspirit.access.store.StoreElementFilter;
@@ -47,7 +42,9 @@ import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
 import de.espirit.firstspirit.access.store.sitestore.StartNode;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
-import de.espirit.firstspirit.server.storemanagement.ReleaseFailedException;
+import de.espirit.firstspirit.agency.OperationAgent;
+import de.espirit.firstspirit.store.operations.DeleteOperation;
+import de.espirit.firstspirit.store.operations.ReleaseOperation;
 import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
@@ -56,7 +53,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.ResourceBundle;
 import java.util.Set;
 
 import static de.espirit.firstspirit.access.store.StoreElementFilter.on;
@@ -92,27 +88,27 @@ public class DeleteObject {
     /**
      * Exception message.
      */
-    public static final String EXCEPTION = "Exception during Delete of ";
+    private static final String EXCEPTION = "Exception during Delete of ";
     /**
      * ID message.
      */
-    public static final String ID = "  id:";
+    private static final String ID = "  id:";
     /**
      * Name for variable that holds the objects to release.
      */
-    public static final String REL_OBJECTS = "releaseObjects";
+    private static final String REL_OBJECTS = "releaseObjects";
     /**
      * Name for variable that holds the objects to delete.
      */
-    public static final String DEL_OBJECTS = "deleteObjects";
+    private static final String DEL_OBJECTS = "deleteObjects";
     /**
      * List of objects that should be deleted.
      */
-    private List<IDProvider> deleteObjects = new ArrayList<IDProvider>();
+    private List<IDProvider> deleteObjects = new ArrayList<>();
     /**
      * List of objects that should be released.
      */
-    private List<IDProvider> releaseObjects = new ArrayList<IDProvider>();
+    private List<IDProvider> releaseObjects = new ArrayList<>();
 
 
     /**
@@ -120,11 +116,11 @@ public class DeleteObject {
      *
      * @param workflowScriptContext The workflowScriptContext from the workflow.
      */
-    public DeleteObject(WorkflowScriptContext workflowScriptContext) {
+    DeleteObject(WorkflowScriptContext workflowScriptContext) {
 
         this.workflowScriptContext = workflowScriptContext;
         // check if content2 object
-        if (workflowScriptContext.getWorkflowable() != null && workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
+        if (workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
             ContentWorkflowable contentWorkflowable = (ContentWorkflowable) workflowScriptContext.getWorkflowable();
             entity = contentWorkflowable.getEntity();
         } else {
@@ -208,7 +204,7 @@ public class DeleteObject {
         Map<String, List<IDProvider>> elementList = getDeleteElements();
         final List<IDProvider> listOfObjectsToDelete = elementList.get(DEL_OBJECTS);
         if (checkOnly) {
-            List<IDProvider> lockedElements = new ArrayList<IDProvider>();
+            List<IDProvider> lockedElements = new ArrayList<>();
             if (listOfObjectsToDelete != null) {
                 for (IDProvider idProv : listOfObjectsToDelete) {
                     if (idProv.isLockedOnServer(true) && !idProv.isLocked()) {
@@ -259,44 +255,59 @@ public class DeleteObject {
         }
 
         // delete elements
-        ServerActionHandle<? extends DeleteProgress, Boolean> handle = deleteIgnoringReferences(deleteObjects);
-        if (handle != null) {
-            try {
-                handle.checkAndThrow();
-                result = handle.getResult();
-                Logging.logInfo("Delete Result: " + result, LOGGER);
-                final DeleteProgress progress = handle.getProgress(true);
-                final Set<Long> lockedFailed = progress.getLockFailedElements();
-                final Set<Long> missingPermission = progress.getMissingPermissionElements();
-                Logging.logInfo("Deleted Elements:", LOGGER);
-                for (Long deleted : progress.getDeletedElements()) {
-                    Logging.logInfo(ID + deleted, LOGGER);
+
+        DeleteOperation.Result deleteResult = deleteIgnoringReferences(deleteObjects);
+        if(deleteResult != null) {
+            result = deleteResult.isSuccessful();
+            final Set<BasicInfo> lockedFailed = deleteResult.getLockFailedElements();
+            final Set<BasicInfo> missingPermission = deleteResult.getMissingPermissionElements();
+            Logging.logInfo("Release Result: " + deleteResult.isSuccessful(), LOGGER);
+            Logging.logInfo("Released Elements:", LOGGER);
+            for (BasicInfo basicInfo : deleteResult.getDeletedElements()) {
+                if (!basicInfo.isEntity()) {
+                    Logging.logInfo(ID + ((BasicElementInfo) basicInfo).getNodeId(), LOGGER);
                 }
-                if (lockedFailed != null && !lockedFailed.isEmpty()) {
-                    Logging.logInfo("LockFailedElements:", LOGGER);
-                    for (Long locked : lockedFailed) {
-                        Logging.logInfo(ID + locked, LOGGER);
-                    }
-                }
-                if (missingPermission != null && !missingPermission.isEmpty()) {
-                    Logging.logInfo("MissingPermissionElement", LOGGER);
-                    for (Long missing : missingPermission) {
-                        Logging.logInfo(ID + missing, LOGGER);
-                    }
-                }
-            } catch (Exception e) {
-                Logging.logError(EXCEPTION + idProvider, e, LOGGER);
             }
-        } else {
-            Logging.logWarning("ServerActionHandle for DeleteProgress is null!", getClass());
+            handleLocksAndPermissions(lockedFailed, missingPermission);
         }
         workflowScriptContext.getTask().closeTask();
         workflowScriptContext.getElement().refresh();
     }
 
+    private void handleLocksAndPermissions(Set<BasicInfo> lockedFailed,
+                                           Set<BasicInfo> missingPermission) {
+        if (lockedFailed != null && !lockedFailed.isEmpty()) {
+            Logging.logInfo("LockFailedElements:", LOGGER);
+            for (BasicInfo locked : lockedFailed) {
+                if(!locked.isEntity()) {
+                    Logging.logInfo(ID + ((BasicElementInfo) locked).getNodeId(), LOGGER);
+                }
+            }
+        }
+        if (missingPermission != null && !missingPermission.isEmpty()) {
+            Logging.logInfo("MissingPermissionElement", LOGGER);
+
+            for (BasicInfo missing : missingPermission) {
+                if(!missing.isEntity()) {
+                    Logging.logInfo(ID + ((BasicElementInfo) missing).getNodeId(), LOGGER);
+                }
+            }
+        }
+    }
+
     // Needed in Tests
-    protected ServerActionHandle<? extends DeleteProgress, Boolean> deleteIgnoringReferences(final List<IDProvider> deleteObjects) {
-        return AccessUtil.delete(deleteObjects, true);
+    protected DeleteOperation.Result deleteIgnoringReferences(final List<IDProvider> deleteObjects) {
+
+        OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+        DeleteOperation deleteOperation = operationAgent.getOperation(DeleteOperation.TYPE);
+        DeleteOperation.Result deleteResult = null;
+        try {
+            IDProvider[] idProviderArr = new IDProvider[deleteObjects.size()];
+            deleteResult = deleteOperation.ignoreIncomingReferences(true).perform(deleteObjects.toArray(idProviderArr));
+        } catch (Exception e) {
+            Logging.logError("Failed to deleted objects: " + e, LOGGER);
+        }
+        return deleteResult;
     }
 
 
@@ -307,54 +318,28 @@ public class DeleteObject {
      */
     private void releaseElements(List<IDProvider> releaseObjects) {
         // release parent elements (only used in webedit workflow)
-        ServerActionHandle<? extends ReleaseProgress, Boolean> releaseHandle;
+        ReleaseOperation.ReleaseResult releaseResult;
         for (IDProvider idProv : releaseObjects) {
-            releaseHandle = releaseWithAccessibilityAndNewOnly(idProv);
-            if (releaseHandle != null) {
-                try {
-                    releaseHandle.checkAndThrow();
-                    releaseHandle.getResult();
-                    result = releaseHandle.getResult();
-                    Logging.logInfo("Release Result: " + result, LOGGER);
-                    final ReleaseProgress progress = releaseHandle.getProgress(true);
-                    final Set<Long> lockedFailed = progress.getLockFailedElements();
-                    final Set<Long> missingPermission = progress.getMissingPermissionElements();
-                    Logging.logInfo("Released Elements:", LOGGER);
-                    for (Long released : progress.getReleasedElements()) {
-                        idProv.refresh();
-                        Logging.logInfo(ID + released, LOGGER);
+            releaseResult = releaseWithAccessibilityAndNewOnly(idProv);
+            if(releaseResult != null) {
+                final Set<BasicInfo> lockedFailed = releaseResult.getProblematicElements().get(ReleaseProblem.LOCK_FAILED);
+                final Set<BasicInfo> missingPermission = releaseResult.getProblematicElements().get(ReleaseProblem.MISSING_PERMISSION);
+                Logging.logInfo("Release Result: " + releaseResult.isSuccessful(), LOGGER);
+                Logging.logInfo("Released Elements:", LOGGER);
+                result = releaseResult.isSuccessful();
+                for (BasicInfo basicInfo : releaseResult.getReleasedElements()) {
+                    if (!basicInfo.isEntity()) {
+                        Logging.logInfo(ID + ((BasicElementInfo) basicInfo).getNodeId(), LOGGER);
                     }
-                    if (lockedFailed != null && !lockedFailed.isEmpty()) {
-                        Logging.logInfo("LockFailedElements:", LOGGER);
-                        for (Long locked : lockedFailed) {
-                            Logging.logInfo(ID + locked, LOGGER);
-                        }
-                    }
-                    if (missingPermission != null && !missingPermission.isEmpty()) {
-                        Logging.logInfo("MissingPermissionElement", LOGGER);
-
-                        for (Long missing : missingPermission) {
-                            Logging.logInfo(ID + missing, LOGGER);
-                        }
-                    }
-                } catch (ReleaseFailedException e) {
-                    Dialog dialog = new Dialog(workflowScriptContext);
-
-                    ResourceBundle.clearCache();
-                    final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(workflowScriptContext).get());
-
-                    dialog.showError(bundle.getString("permissionIssues"), bundle.getString("missingPermissions"));
-
-                    Logging.logError("Exception during Release of " + idProv, e, LOGGER);
-                } catch (Exception e) {
-                    Logging.logError("Exception during Release of " + idProv, e, LOGGER);
                 }
+                handleLocksAndPermissions(lockedFailed, missingPermission);
             }
+
             // release new startnode (if modified through delete action)
             if (idProv instanceof PageRefFolder) {
                 StartNode startNode = ((PageRefFolder) idProv).getStartNode();
                 if (startNode != null && startNode.getReleaseStatus() != IDProvider.RELEASED) {
-                    List<IDProvider> startNodeList = new ArrayList<IDProvider>();
+                    List<IDProvider> startNodeList = new ArrayList<>();
                     startNodeList.add(startNode);
                     releaseElements(startNodeList);
                 }
@@ -363,8 +348,16 @@ public class DeleteObject {
         }
     }
 
-    protected ServerActionHandle<? extends ReleaseProgress, Boolean> releaseWithAccessibilityAndNewOnly(final IDProvider idProv) {
-        return AccessUtil.release(idProv, false, true, false, IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY);
+    protected ReleaseOperation.ReleaseResult releaseWithAccessibilityAndNewOnly(final IDProvider idProv) {
+        OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
+        ReleaseOperation releaseOperation = operationAgent.getOperation(ReleaseOperation.TYPE);
+        ReleaseOperation.ReleaseResult releaseResult = null;
+        try {
+            releaseResult = releaseOperation.checkOnly(false).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY).perform(idProv);
+        } catch (Exception e) {
+            Logging.logInfo("Failed to release IdProvider with id: " + idProv.getId() +"\n" + e, LOGGER);
+        }
+        return releaseResult;
     }
 
 
@@ -377,7 +370,7 @@ public class DeleteObject {
      * @return a map with IDProvider objects to delete.
      */
     private Map<String, List<IDProvider>> getDeleteElements() {
-        Map<String, List<IDProvider>> deleteElements = new HashMap<String, List<IDProvider>>();
+        Map<String, List<IDProvider>> deleteElements = new HashMap<>();
 
         // Webedit
         if (workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
@@ -485,10 +478,10 @@ public class DeleteObject {
      *
      * @param lckObjects A list of IDProvider objects that reference the object to be deleted.
      */
-    public void storeReferences(List<IDProvider> lckObjects) {
-        List<List<String>> lockedObjects = new ArrayList<List<String>>();
+    private void storeReferences(List<IDProvider> lckObjects) {
+        List<List<String>> lockedObjects = new ArrayList<>();
         for (IDProvider idProv : lckObjects) {
-            List<String> lockedObjectList = new ArrayList<String>();
+            List<String> lockedObjectList = new ArrayList<>();
             lockedObjectList.add(idProv.getElementType());
             if (idProv.hasUid()) {
                 lockedObjectList.add(idProv.getUid());

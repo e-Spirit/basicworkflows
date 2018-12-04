@@ -1,5 +1,4 @@
-/*-
- * ========================LICENSE_START=================================
+/*
  * BasicWorkflows Module
  * %%
  * Copyright (C) 2012 - 2018 e-Spirit AG
@@ -7,15 +6,14 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * =========================LICENSE_END==================================
  */
 package com.espirit.moddev.basicworkflows.release;
 
@@ -25,6 +23,7 @@ import com.espirit.moddev.basicworkflows.util.ReferenceResult;
 import com.espirit.moddev.basicworkflows.util.StoreUtil;
 import com.espirit.moddev.basicworkflows.util.WorkflowConstants;
 import com.espirit.moddev.basicworkflows.util.WorkflowSessionHelper;
+import com.espirit.moddev.components.annotations.PublicComponent;
 
 import de.espirit.common.base.Logging;
 import de.espirit.common.util.Listable;
@@ -40,8 +39,6 @@ import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,6 +52,7 @@ import java.util.ResourceBundle;
  * @author stephan
  * @since 1.0
  */
+@PublicComponent(name = "WorkFlow Find Related Objects Executable")
 public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
 
     /**
@@ -95,7 +93,7 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         // For A/B Testing it is possible to add an additional Workflow step that collects FirstSpirit Objects to release (i.e. Variants)
 		final Object relatedPageRefElements = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.RELATED_PAGEREF_ELEMENTS);
         List<String> relatedPageRefUids = null;
-        if (relatedPageRefElements != null && relatedPageRefElements instanceof List) {
+        if (relatedPageRefElements instanceof List) {
             relatedPageRefUids = (List<String>) relatedPageRefElements;
         }
 
@@ -152,7 +150,6 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
 	}
 
 
-    @NotNull
     private static Map<Long, Store.Type> getChildrenOf(final IDProvider releaseElement, final StoreUtil storeUtil) {
         final StoreElementFilter filter;
         final Map<Long, Store.Type> childrenIdMap = new HashMap<>();

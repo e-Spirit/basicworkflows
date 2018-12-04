@@ -20,14 +20,13 @@
 package com.espirit.moddev.basicworkflows.delete;
 
 import de.espirit.firstspirit.access.BaseContext;
-import de.espirit.firstspirit.access.ServerActionHandle;
 import de.espirit.firstspirit.access.Task;
-import de.espirit.firstspirit.access.store.DeleteProgress;
 import de.espirit.firstspirit.access.store.IDProvider;
-import de.espirit.firstspirit.access.store.ReleaseProgress;
 import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.mediastore.Media;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.store.operations.DeleteOperation;
+import de.espirit.firstspirit.store.operations.ReleaseOperation;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -112,12 +111,12 @@ public class DeleteObjectTest {
     private void runDelete() {
         DeleteObject deleteObject = new DeleteObject(workflowScriptContext){
             @Override
-            protected ServerActionHandle<? extends DeleteProgress, Boolean> deleteIgnoringReferences(List<IDProvider> deleteObjects) {
+            protected DeleteOperation.Result deleteIgnoringReferences(List<IDProvider> deleteObjects) {
                 return null;
             }
 
             @Override
-            protected ServerActionHandle<? extends ReleaseProgress, Boolean> releaseWithAccessibilityAndNewOnly(IDProvider idProv) {
+            protected ReleaseOperation.ReleaseResult releaseWithAccessibilityAndNewOnly(IDProvider idProv) {
                 return null;
             }
         };

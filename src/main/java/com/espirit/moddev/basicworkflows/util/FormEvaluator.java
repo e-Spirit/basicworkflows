@@ -1,5 +1,4 @@
-/*-
- * ========================LICENSE_START=================================
+/*
  * BasicWorkflows Module
  * %%
  * Copyright (C) 2012 - 2018 e-Spirit AG
@@ -7,23 +6,21 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * =========================LICENSE_END==================================
  */
 package com.espirit.moddev.basicworkflows.util;
 
-import de.espirit.firstspirit.access.editor.CheckboxEditorValue;
 import de.espirit.firstspirit.access.editor.value.Option;
-import de.espirit.firstspirit.access.store.Data;
-import de.espirit.firstspirit.access.store.DataValue;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.forms.FormData;
+import de.espirit.firstspirit.forms.FormField;
 
 import java.util.Set;
 
@@ -66,16 +63,15 @@ public class FormEvaluator {
             }
             // standard case
         } else {
-            Data data = workflowScriptContext.getData();
+            FormData data = workflowScriptContext.getFormData();
             if (data == null) {
                 return false;
             }
-            DataValue dataValue = data.get(varname);
+            FormField dataValue = data.get(workflowScriptContext.getProject().getMasterLanguage(), varname);
             if (dataValue == null) {
                 return false;
             }
-            final CheckboxEditorValue value = (CheckboxEditorValue) dataValue.getEditor();
-            final Set<Option> options = value.get(workflowScriptContext.getProject().getMasterLanguage());
+            final Set<Option> options = (Set<Option>) dataValue.get();
             for (Option option : options) {
                 checkboxValue = Boolean.parseBoolean((String) option.getValue());
             }

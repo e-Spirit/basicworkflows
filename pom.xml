@@ -5,10 +5,10 @@
 
     <groupId>com.espirit.moddev</groupId>
     <artifactId>basicworkflows</artifactId>
-    <version>1.2.2</version>
+    <version>1.3.0</version>
     <packaging>jar</packaging>
     <name>${project.displayName}</name>
-    <inceptionYear>2012</inceptionYear>
+    <inceptionYear>2018</inceptionYear>
     <organization>
         <name>e-Spirit AG</name>
         <url>http://www.e-spirit.com/</url>
@@ -81,6 +81,7 @@
                             </descriptors>
                             <appendAssemblyId>true</appendAssemblyId>
                             <finalName>${project.artifactId}</finalName>
+                            <attach>false</attach>
                         </configuration>
                     </execution>
                 </executions>
@@ -95,16 +96,38 @@
                         <phase>package</phase>
                         <configuration>
                             <tasks>
-                                <property name="compile_classpath" refid="maven.compile.classpath" />
-                                <property name="runtime_classpath" refid="maven.runtime.classpath" />
-                                <property name="test_classpath" refid="maven.test.classpath" />
-                                <property name="plugin_classpath" refid="maven.plugin.classpath" />
-                                <move file="target/${project.artifactId}-fsm.zip" tofile="target/${project.artifactId}.fsm" />
+                                <property name="compile_classpath" refid="maven.compile.classpath"/>
+                                <property name="runtime_classpath" refid="maven.runtime.classpath"/>
+                                <property name="test_classpath" refid="maven.test.classpath"/>
+                                <property name="plugin_classpath" refid="maven.plugin.classpath"/>
+                                <move file="target/${project.artifactId}-fsm.zip" tofile="target/${project.artifactId}.fsm"/>
                             </tasks>
                         </configuration>
                         <goals>
                             <goal>run</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-artifacts</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>target/${project.artifactId}.fsm</file>
+                                    <type>fsm</type>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -140,13 +163,7 @@
         <!-- FirstSpirit -->
         <dependency>
             <groupId>de.espirit.firstspirit</groupId>
-            <artifactId>fs-access</artifactId>
-            <version>${firstspirit.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>de.espirit.firstspirit</groupId>
-            <artifactId>client</artifactId>
+            <artifactId>fs-isolated-runtime</artifactId>
             <version>${firstspirit.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -293,7 +310,7 @@
                 </property>
             </activation>
             <properties>
-                <firstspirit.version>5.2.713</firstspirit.version>
+                <firstspirit.version>5.2.181007</firstspirit.version>
             </properties>
         </profile>
 
