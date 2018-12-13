@@ -119,8 +119,10 @@ class WorkflowObject {
         }
 
         // get elements from recursive release
-        final Map<Long, Store.Type> childrenIdMap = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.WF_RECURSIVE_CHILDREN);
-        if(childrenIdMap != null && !childrenIdMap.isEmpty()) {
+        final Map<Long, Store.Type>
+            childrenIdMap =
+            WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.WF_RECURSIVE_CHILDREN);
+        if (childrenIdMap != null && !childrenIdMap.isEmpty()) {
             final StoreAgent storeAgent = workflowScriptContext.requireSpecialist(StoreAgent.TYPE);
             for (final Map.Entry<Long, Store.Type> childrenId : childrenIdMap.entrySet()) {
                 recursiveChildrenList.add(storeAgent.getStore(childrenId.getValue()).getStoreElement(childrenId.getKey()));
@@ -130,8 +132,7 @@ class WorkflowObject {
 
 
     /**
-     * This method gets the referenced objects from the workflow object (StoreElement) that prevent
-     * the release.
+     * This method gets the referenced objects from the workflow object (StoreElement) that prevent the release.
      *
      * @param releaseWithMedia Determines if media references should also be checked
      * @return a list of elements that reference the workflow object.
@@ -289,24 +290,25 @@ class WorkflowObject {
 
         // put not released elements to session for further use
         final Map<String, IDProvider.UidType>
-                    notReleasedElementsFromSession =
-        				WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
+            notReleasedElementsFromSession =
+            WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
         notReleasedElements.putAll(notReleasedElementsFromSession);
         workflowScriptContext.getSession().put(WorkflowConstants.WF_NOT_RELEASED_ELEMENTS, notReleasedElements);
 
         // put elements in workflow to session for further use
         final Map<String, IDProvider.UidType>
-                    elementsInWorkflowFromSession =
-                                        WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_OBJECTS_IN_WORKFLOW);
+            elementsInWorkflowFromSession =
+            WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_OBJECTS_IN_WORKFLOW);
         elementsInWorkflow.putAll(elementsInWorkflowFromSession);
         workflowScriptContext.getSession().put(WorkflowConstants.WF_OBJECTS_IN_WORKFLOW, elementsInWorkflow);
 
         // remember broken references
         if (releaseRecursively && workflowScriptContext.getSession().containsKey(WorkflowConstants.WF_BROKEN_REFERENCES)) {
-                boolean brokenReferences = WorkflowSessionHelper.readBooleanFromSession(workflowScriptContext, WorkflowConstants.WF_BROKEN_REFERENCES);
-                workflowScriptContext.getSession().put(WorkflowConstants.WF_BROKEN_REFERENCES, !referenceResult.isNoBrokenReferences() || brokenReferences);
+            boolean brokenReferences = WorkflowSessionHelper.readBooleanFromSession(workflowScriptContext, WorkflowConstants.WF_BROKEN_REFERENCES);
+            workflowScriptContext.getSession()
+                .put(WorkflowConstants.WF_BROKEN_REFERENCES, !referenceResult.isNoBrokenReferences() || brokenReferences);
         } else {
-                workflowScriptContext.getSession().put(WorkflowConstants.WF_BROKEN_REFERENCES, !referenceResult.isNoBrokenReferences());
+            workflowScriptContext.getSession().put(WorkflowConstants.WF_BROKEN_REFERENCES, !referenceResult.isNoBrokenReferences());
         }
 
         return referenceResult;
@@ -318,7 +320,7 @@ class WorkflowObject {
         }
         idProvider.refresh();
 
-        if(idProvider.hasTask()) {
+        if (idProvider.hasTask()) {
             Logging.logWarning("Element in workflow:" + idProvider.getUid(), LOGGER);
             referenceResult.setNoObjectsInWorkflow(false);
             recordIncorrectElement(elementsInWorkflow, idProvider);
@@ -328,7 +330,7 @@ class WorkflowObject {
 
     private void checkRulesForEnities(ArrayList<Entity> releaseEntities, ReferenceResult referenceResult,
                                       Map<String, IDProvider.UidType> notReleasedElements) {
-        for(Entity entityFromReference : releaseEntities) {
+        for (Entity entityFromReference : releaseEntities) {
             Listable<Content2> suitableContent2Objects = getContent2ObjectsForEntity(entityFromReference);
 
             if (suitableContent2Objects.toList().isEmpty()) {
@@ -337,10 +339,11 @@ class WorkflowObject {
                 boolean schemaIsReadonly = suitableContent2Objects.getFirst().getSchema().isReadOnly();
                 if (!schemaIsReadonly && !entityFromReference.isReleased()) {
                     Logging.logWarning(
-                            "No media and not released:" + entityFromReference.getIdentifier() + "#" + entityFromReference.get("fs_id"), LOGGER);
+                        "No media and not released:" + entityFromReference.getIdentifier() + "#" + entityFromReference.get("fs_id"), LOGGER);
 
                     final String entityIdentifier = entityFromReference.getIdentifier().getEntityTypeName() + " ("
-                            + entityFromReference.getIdentifier().getEntityTypeName() + ", ID#" + entityFromReference.get("fs_id") + ")";
+                                                    + entityFromReference.getIdentifier().getEntityTypeName() + ", ID#" + entityFromReference
+                                                        .get("fs_id") + ")";
 
                     referenceResult.setNotMediaReleased(false);
                     referenceResult.setAllObjectsReleased(false);
@@ -355,7 +358,7 @@ class WorkflowObject {
                                           ReferenceResult referenceResult,
                                           Map<String, IDProvider.UidType> notReleasedElements, boolean releaseWithMedia,
                                           Map<String, IDProvider.UidType> elementsInWorkflow) {
-        for(IDProvider idProvider : releaseIdProviders) {
+        for (IDProvider idProvider : releaseIdProviders) {
             // check if current PAGE within PAGEREF-Release
             boolean isCurrentPage = false;
             boolean isPartOfRelease = recursiveChildrenList.contains(idProvider) && releaseRecursively;
@@ -371,8 +374,7 @@ class WorkflowObject {
             if (idProvider != null && (!isCurrentPage || (isMedia(idProvider) && !releaseWithMedia))) {
                 idProvider.refresh();
                 // check if only media is referenced except templates
-                if (!isMedia(idProvider) && !isTemplate(idProvider) && !isDataRecord(idProvider)
-                    && !(isQuery(idProvider))) {
+                if (!isMedia(idProvider) && !isTemplate(idProvider) && !isDataRecord(idProvider) && !(isQuery(idProvider))) {
                     Logging.logWarning("No media:" + idProvider.getId(), LOGGER);
                     referenceResult.setOnlyMedia(false);
                     // check if is no media and not released
@@ -392,7 +394,7 @@ class WorkflowObject {
                     recordIncorrectElement(notReleasedElements, idProvider);
                 }
             }
-            if(idProvider != null) {
+            if (idProvider != null) {
                 checkObjectInWorkflow(idProvider, referenceResult, elementsInWorkflow);
             }
         }
@@ -407,7 +409,8 @@ class WorkflowObject {
         return contentStoreRoot.getChildren(new TypedFilter<Content2>(Content2.class) {
             @Override
             public boolean accept(Content2 storeElement) {
-                return (storeElement.getEntityType().equals(entityFromReference.getEntityType())) && storeElement.getEntity(entityFromReference.getKeyValue()) != null;
+                return (storeElement.getEntityType().equals(entityFromReference.getEntityType()))
+                       && storeElement.getEntity(entityFromReference.getKeyValue()) != null;
             }
         }, true);
     }
@@ -432,7 +435,7 @@ class WorkflowObject {
                 Logging.logInfo("Reference broken!", LOGGER);
                 ReferenceEntry[] usages = referenceEntry.getUsages();
                 Logging.logInfo("Current usages:", LOGGER);
-                for(ReferenceEntry usage : usages) {
+                for (ReferenceEntry usage : usages) {
                     Logging.logInfo("Reference id: " + usage.getId(), LOGGER);
                 }
             } else {
@@ -451,7 +454,7 @@ class WorkflowObject {
                     Logging.logInfo("Reference broken!", LOGGER);
                     ReferenceEntry[] usages = referenceEntry.getUsages();
                     Logging.logInfo("Current usages:", LOGGER);
-                    for(ReferenceEntry usage : usages) {
+                    for (ReferenceEntry usage : usages) {
                         Logging.logInfo("Reference id: " + usage.getId(), LOGGER);
                     }
                 }
@@ -471,10 +474,6 @@ class WorkflowObject {
 
     private static boolean isReferenceEntry(Object object) {
         return object instanceof ReferenceEntry;
-    }
-
-    private static boolean isNeverReleased(IDProvider idProvider) {
-        return idProvider.getReleaseStatus() == IDProvider.NEVER_RELEASED;
     }
 
     private static boolean isQuery(final Object o) {
@@ -517,7 +516,7 @@ class WorkflowObject {
             throw new IllegalArgumentException("IDProvider is null");
         }
         elements.put(idProvider.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + idProvider.getUid() + ", "
-                + idProvider.getId() + ")", idProvider.getUidType());
+                     + idProvider.getId() + ")", idProvider.getUidType());
 
     }
 
@@ -530,86 +529,76 @@ class WorkflowObject {
     private Set<Object> getReferences(final boolean releaseWithMedia, StoreElement storeElement) {
         Set<Object> references = new HashSet<>();
 
-        // add outgoing references
         addOutgoingReferences(storeElement, references, releaseWithMedia);
+        addOutgoingReferencesFromParentObjects(storeElement, references, releaseWithMedia);
 
-        // add outgoing references of parent objects if element was never released before
-        if ((isNeverReleased((IDProvider) storeElement)) && (!releaseRecursively || notInChildList())) {
-            StoreElement elem = storeElement;
-            while (elem.getParent() != null) {
-                elem = elem.getParent();
-                addOutgoingReferences(elem, references, releaseWithMedia);
-            }
-        }
-
-
-        //Special cases in ContentCreator
-        if (workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
-            addParentFoldersInCaseOfMovedFolder(references);
-            addParentFolderIfChanged(references);
-        }
+        // special case in the ContentCreator
+        addParentFolder(references);
 
         return references;
     }
 
-
-    private void addParentFolderIfChanged(final Set<Object> references) {
-        // add parent folder if that has changed (only used in webedit workflow)
-        if ((isChanged((IDProvider) storeElement)) && (!releaseRecursively || notInChildList())) {
-            StoreElement elem = storeElement;
-            if (elem.getParent() != null) {
-                elem = elem.getParent();
-                if (isChanged((IDProvider) elem)) {
-                    references.add(elem);
-                }
-            }
-        }
-    }
-
-
-    private void addParentFoldersInCaseOfMovedFolder(final Set<Object> references) {
-        // add parent folders in case of a moved folder (only used in webedit workflow)
-        if ((isReleased((IDProvider) storeElement)) && (!releaseRecursively || notInChildList())) {
-            StoreElement elem = storeElement;
-            while (elem.getParent() != null) {
-                elem = elem.getParent();
-                if (isChanged((IDProvider) elem)) {
-                    references.add(elem);
-                }
-            }
-        }
-    }
-
-
-    private boolean notInChildList() {
-        StoreElement elem = storeElement;
-        while (elem.getParent() != null) {
-            elem = elem.getParent();
-            if (elem.equals(startElement)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-
-    private static boolean isChanged(final IDProvider storeElem) {
-        return storeElem.getReleaseStatus() == IDProvider.CHANGED;
-    }
-
-    private static boolean isReleased(final IDProvider storeElem) {
-        return storeElem.getReleaseStatus() == IDProvider.RELEASED;
-    }
-
-    /**
-     * Sets the workflow object.
-     *
-     * @param idProvider the workflow object to use.
+    /*
+     * Adds the outgoing references from the parent objects if the store element was never released before.
      */
+    private void addOutgoingReferencesFromParentObjects(final StoreElement storeElement, final Set<Object> references, final boolean releaseWithMedia) {
+        if (isNeverReleased((IDProvider) storeElement) && (!releaseRecursively || !isInChildList())) {
+            StoreElement element = storeElement;
+
+            while (element != null && element.getParent() != null) {
+                element = element.getParent();
+                addOutgoingReferences(element, references, releaseWithMedia);
+            }
+        }
+    }
+
+    /*
+     * Only required in the ContentCreator workflow.
+     *
+     * Adds the parent folder if it has changed. It's not necessary to check if the parent folder was released before.
+     * The AccessUtil.release() method in the ReleaseObject class ensures the accessibility.
+     */
+    private void addParentFolder(final Set<Object> references) {
+        if (workflowScriptContext.is(BaseContext.Env.WEBEDIT) && (!releaseRecursively || !isInChildList())) {
+            IDProvider parent = (IDProvider) storeElement.getParent();
+            if (parent != null && isChanged(parent)) {
+                references.add(parent);
+            }
+        }
+    }
+
+    /*
+     * Checks if the 'element' is a child of the 'startElement'.
+     */
+    private boolean isInChildList() {
+        StoreElement element = storeElement;
+
+        while (element != null && element.getParent() != null) {
+            element = element.getParent();
+
+            if (element.equals(startElement)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean isChanged(final IDProvider idProvider) {
+        return idProvider.getReleaseStatus() == IDProvider.CHANGED;
+    }
+
+    private static boolean isNeverReleased(IDProvider idProvider) {
+        return idProvider.getReleaseStatus() == IDProvider.NEVER_RELEASED;
+    }
+
+    private static boolean isReleased(final IDProvider idProvider) {
+        return idProvider.getReleaseStatus() == IDProvider.RELEASED;
+    }
+
     void setStoreElement(IDProvider idProvider) {
         storeElement = idProvider;
     }
-
 
     void setRecursively(boolean releaseRecursively) {
         this.releaseRecursively = releaseRecursively;

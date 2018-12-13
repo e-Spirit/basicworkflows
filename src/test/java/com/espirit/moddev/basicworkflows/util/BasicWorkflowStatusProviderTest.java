@@ -107,7 +107,7 @@ public class BasicWorkflowStatusProviderTest {
         assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
     }
 
-    
+
     @Theory
     public void testGetReleaseStatePage(final ReleaseStateChangedTestData testData) throws Exception {
 
@@ -128,7 +128,7 @@ public class BasicWorkflowStatusProviderTest {
 
         assertThat("unexpected State", releaseState, is(testData.getExpectedState()));
     }
-    
+
     @DataPoints
     public static IDProvider[] elements = {mock(Page.class), mock(PageRef.class), mock(Dataset.class), mock(DocumentGroup.class)};
 

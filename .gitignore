@@ -4,7 +4,7 @@ Icon?
 *.class
 target/
 /.idea
-/*.iml
+*.iml
 /*.ipr
 /*.iws
 /*/*.iml

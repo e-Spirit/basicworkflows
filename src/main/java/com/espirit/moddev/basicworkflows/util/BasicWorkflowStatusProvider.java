@@ -63,9 +63,9 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
             return state;
         }
 
-        // Check the parents
-        final List<SiteStoreFolder> parentFolders = getParentFolders(element);
-        for (final SiteStoreFolder parent : parentFolders) {
+        // Check the parent
+        IDProvider parent = element.getParent();
+        if (parent != null && !"root".equals(parent.getUid())) {
             state = getElementReleaseState(parent);
             if (state != State.RELEASED) {
                 return state;
@@ -129,28 +129,6 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         }
 
         return State.RELEASED;
-    }
-
-    /**
-     * Returns all parent element folders.
-     *
-     * @param element the pageRef element
-     * @return list of parent elements (folder)
-     */
-    private static LinkedList<SiteStoreFolder> getParentFolders(IDProvider element) {
-        LinkedList<SiteStoreFolder> parentFolders = new LinkedList<>();
-
-        final IDProvider parentElement = element.getParent();
-        if (parentElement != null && !"root".equals(parentElement.getUid())) {
-            parentFolders = getParentFolders(parentElement);
-        }
-
-        if (parentElement instanceof SiteStoreFolder) {
-            final SiteStoreFolder parentFolder = (SiteStoreFolder) parentElement;
-            parentFolders.addFirst(parentFolder);
-        }
-
-        return parentFolders;
     }
 
     /**

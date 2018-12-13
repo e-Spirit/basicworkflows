@@ -32,30 +32,30 @@ public class ReleaseStateChangedTestData {
     private ReleaseStateChangedTestData() {
     }
 
-    public static ReleaseStateChangedTestData create(){
+    public static ReleaseStateChangedTestData create() {
         return new ReleaseStateChangedTestData();
     }
 
-    public static ReleaseStateChangedTestData createWith(int state){
+    public static ReleaseStateChangedTestData createWith(int state) {
         return create().provideState(state);
     }
 
-    public ReleaseStateChangedTestData provideState(int state){
+    public ReleaseStateChangedTestData provideState(int state) {
         providedState = state;
         return this;
     }
 
-    public ReleaseStateChangedTestData expectState(WebeditElementStatusProviderPlugin.State state){
+    public ReleaseStateChangedTestData expectState(WebeditElementStatusProviderPlugin.State state) {
         expectedState = state;
         return this;
     }
 
-    public ReleaseStateChangedTestData enableReleaseSupport(){
+    public ReleaseStateChangedTestData enableReleaseSupport() {
         releaseSupported = true;
         return this;
     }
 
-    public ReleaseStateChangedTestData withTask(){
+    public ReleaseStateChangedTestData withTask() {
         hasTask = true;
         return this;
     }
