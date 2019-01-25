@@ -17,10 +17,14 @@
  */
 package com.espirit.moddev.basicworkflows.util;
 
+import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.editor.value.Option;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
+import de.espirit.firstspirit.access.store.templatestore.gom.GomFormElement;
 import de.espirit.firstspirit.forms.FormData;
 import de.espirit.firstspirit.forms.FormField;
+
+import com.espirit.moddev.basicworkflows.release.WfFindRelatedObjectsExecutable;
 
 import java.util.Set;
 
@@ -32,17 +36,18 @@ import java.util.Set;
  */
 public class FormEvaluator {
 
+    public static final Class<WfFindRelatedObjectsExecutable> LOGGER = WfFindRelatedObjectsExecutable.class;
     /**
      * The workflowScriptContext from the workflow.
      */
-    private WorkflowScriptContext workflowScriptContext;
+    private final WorkflowScriptContext workflowScriptContext;
 
     /**
      * Constructor for FormEvaluator.
      *
      * @param workflowScriptContext The workflowScriptContext from the workflow.
      */
-    public FormEvaluator(WorkflowScriptContext workflowScriptContext) {
+    public FormEvaluator(final WorkflowScriptContext workflowScriptContext) {
         this.workflowScriptContext = workflowScriptContext;
     }
 
@@ -52,26 +57,32 @@ public class FormEvaluator {
      * @param varname The name of the variable to check.
      * @return true if the checkbox is checked.
      */
-    public boolean getCheckboxValue(String varname) {
+    public boolean getCheckboxValue(final String varname) {
         boolean checkboxValue = false;
 
-        Object relwMedia = workflowScriptContext.getTask().getCustomAttributes().get(varname);
-        // test case
+        final Object relwMedia = workflowScriptContext.getTask().getCustomAttributes().get(varname);
         if (relwMedia != null) {
+            // test case
             if (isReleaseMedia(relwMedia)) {
                 checkboxValue = true;
             }
-            // standard case
         } else {
-            FormData data = workflowScriptContext.getFormData();
-            if (data == null) {
+            // standard case
+            final FormData formData = workflowScriptContext.getFormData();
+            if (formData == null) {
                 return false;
             }
-            FormField dataValue = data.get(workflowScriptContext.getProject().getMasterLanguage(), varname);
-            if (dataValue == null) {
+            final GomFormElement formElement = formData.getForm().findEditor(varname);
+            if (formElement == null) {
+                // no formfield with given name
+                Logging.logWarning("form field with name '" + varname + "' not existing (using default value 'false') - seems your workflow is outdated - please update!", LOGGER);
                 return false;
             }
-            final Set<Option> options = (Set<Option>) dataValue.get();
+            final FormField<Set<Option>> formField = (FormField<Set<Option>>) formData.get(workflowScriptContext.getProject().getMasterLanguage(), varname);
+            if (formField == null) {
+                return false;
+            }
+            final Set<Option> options = formField.get();
             for (Option option : options) {
                 checkboxValue = Boolean.parseBoolean((String) option.getValue());
             }
