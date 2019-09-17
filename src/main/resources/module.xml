@@ -1,41 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
+  ========================LICENSE_START=================================
+  BasicWorkflows Module
+  %%
+  Copyright (C) 2012 - 2018 e-Spirit AG
+  %%
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  =========================LICENSE_END==================================
+  -->
 
-    BasicWorkflows Module
-    %%
-    Copyright (C) 2012 - 2018 e-Spirit AG
-    %%
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-         http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
 <module>
-    <name>basicworkflows</name>
-    <displayname>BasicWorkflows (I,L)</displayname>
-    <version>$version</version>
-    <description>basicworkflows</description>
+    <name>${project.displayName}</name>
+    <displayname>${project.displayName}</displayname>
+    <version>${project.version}</version>
+    <description>${project.displayName}</description>
     <vendor>com.espirit.moddev</vendor>
     <components>
-        $components
+        <public>
+            <name>Delete WorkFlow Check Prerequisites Executable</name>
+            <class>com.espirit.moddev.basicworkflows.delete.WfCheckPrerequisitesExecutable</class>
+        </public>
+        <public>
+            <name>Delete WorkFlow Delete Executable</name>
+            <class>com.espirit.moddev.basicworkflows.delete.WfDeleteExecutable</class>
+        </public>
+        <public>
+            <name>Delete WorkFlow Test Delete Executable</name>
+            <class>com.espirit.moddev.basicworkflows.delete.WfDeleteTestExecutable</class>
+        </public>
+        <public>
+            <name>Delete WorkFlow Find Related Objects Executable</name>
+            <class>com.espirit.moddev.basicworkflows.delete.WfFindRelatedObjectsExecutable</class>
+        </public>
+        <public>
+            <name>Delete WorkFlow Show Related Objects Executable</name>
+            <class>com.espirit.moddev.basicworkflows.delete.WfShowRelatedObjectsExecutable</class>
+        </public>
+        <public>
+            <name>Delete WorkFlow Show Warning Executable</name>
+            <class>com.espirit.moddev.basicworkflows.delete.WfShowWarningExecutable</class>
+        </public>
+		<public>
+			<name>Delete WorkFlow Branch If Folder Executable</name>
+			<class>com.espirit.moddev.basicworkflows.delete.WfBranchIfFolderExecutable</class>
+		</public>
+
+        <public>
+            <name>WorkFlow Find Related Objects Executable</name>
+            <class>com.espirit.moddev.basicworkflows.release.WfFindRelatedObjectsExecutable</class>
+        </public>
+        <public>
+            <name>WorkFlow Release Executable</name>
+            <class>com.espirit.moddev.basicworkflows.release.WfReleaseExecutable</class>
+        </public>
+        <public>
+            <name>WorkFlow Release Test Executable</name>
+            <class>com.espirit.moddev.basicworkflows.release.WfReleaseTestExecutable</class>
+        </public>
+        <public>
+            <name>WorkFlow Show Not Released Objects Executable</name>
+            <class>com.espirit.moddev.basicworkflows.release.WfShowNotReleasedObjectsExecutable</class>
+        </public>
+        <public>
+            <name>WorkFlow Show Warning Executable</name>
+            <class>com.espirit.moddev.basicworkflows.release.WfShowWarningExecutable</class>
+        </public>
+
+        <public>
+            <name>${project.displayName} Status Provider</name>
+            <class>com.espirit.moddev.basicworkflows.util.BasicWorkflowStatusProvider</class>
+        </public>
         <!-- Web application that provides all module classes and support files to the WebClient run-time. -->
         <web-app scopes="global,project">
-            <name>BasicWorkflows_ContentCreator_Library</name>
+            <name>${project.displayName}_ContentCreator_Library</name>
             <web-xml>web/web.xml</web-xml>
             <web-resources>
-                $resources
+                <resource>lib/${project.artifactId}-${project.version}-jar-with-dependencies.jar</resource>
             </web-resources>
         </web-app>
     </components>
     <resources>
-        $resources
+        <resource scope="server">lib/${project.artifactId}-${project.version}-jar-with-dependencies.jar</resource>
     </resources>
 </module>
