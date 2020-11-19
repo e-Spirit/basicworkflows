@@ -49,14 +49,24 @@ public class StoreComparator implements Comparator<Object> {
         }
         final Type type1 = storeElement1.getStore().getType();
         final Type type2 = storeElement2.getStore().getType();
-        if (isPageStoreObject(type1)) {
-            if (isPageStoreObject(type2)) {
+        // MediaStoreObject < PageStoreObject < SiteStoreObject < others
+        if (isMediaStoreObject(type1)) {
+            if (isMediaStoreObject(type2)) {
                 return 0;
             } else {
                 return -1;
             }
-        } else { 
-            if (isPageStoreObject(type2)) {
+        } else if (isPageStoreObject(type1)) {
+            if (isMediaStoreObject(type2)) {
+                return 1;
+            }
+            else if (isPageStoreObject(type2)) {
+                return 0;
+            } else {
+                return -1;
+            }
+        } else {
+            if (isMediaStoreObject(type2) || isPageStoreObject(type2)) {
                 return 1;
             } else if (isSiteStoreObject(type2)) {
                 return 0;
@@ -66,6 +76,9 @@ public class StoreComparator implements Comparator<Object> {
         }
     }
 
+    private boolean isMediaStoreObject(final Type type) {
+        return type == Store.Type.MEDIASTORE;
+    }
 
     private boolean isPageStoreObject(final Type type) {
         return type == Store.Type.PAGESTORE;

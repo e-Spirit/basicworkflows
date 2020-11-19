@@ -42,12 +42,12 @@ public class StoreComparatorTest {
 
 		Collections.sort(releaseObjects, new StoreComparator());
 
-		assertEquals(Store.Type.PAGESTORE, releaseObjects.get(0).getStore().getType());
-		assertEquals(Store.Type.PAGESTORE, releaseObjects.get(1).getStore().getType());
-		assertEquals(Store.Type.SITESTORE, releaseObjects.get(2).getStore().getType());
-		assertEquals(Store.Type.SITESTORE, releaseObjects.get(3).getStore().getType());
-		assertEquals(Store.Type.MEDIASTORE, releaseObjects.get(4).getStore().getType());
-		assertEquals(Store.Type.MEDIASTORE, releaseObjects.get(5).getStore().getType());
+		assertEquals(Store.Type.MEDIASTORE, releaseObjects.get(0).getStore().getType());
+		assertEquals(Store.Type.MEDIASTORE, releaseObjects.get(1).getStore().getType());
+		assertEquals(Store.Type.PAGESTORE, releaseObjects.get(2).getStore().getType());
+		assertEquals(Store.Type.PAGESTORE, releaseObjects.get(3).getStore().getType());
+		assertEquals(Store.Type.SITESTORE, releaseObjects.get(4).getStore().getType());
+		assertEquals(Store.Type.SITESTORE, releaseObjects.get(5).getStore().getType());
 	}
 
 

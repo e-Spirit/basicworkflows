@@ -5,7 +5,7 @@
 
     <groupId>com.espirit.moddev</groupId>
     <artifactId>basicworkflows</artifactId>
-    <version>1.3.2</version>
+    <version>1.3.4</version>
     <packaging>jar</packaging>
     <name>${project.displayName}</name>
     <inceptionYear>2018</inceptionYear>
