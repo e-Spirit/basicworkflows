@@ -1,7 +1,7 @@
 /*
  * BasicWorkflows Module
  * %%
- * Copyright (C) 2012 - 2018 e-Spirit AG
+ * Copyright (C) 2012 - 2023 Crownpeak Technology GmbH - https://www.crownpeak.com
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
