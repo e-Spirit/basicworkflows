@@ -1,10 +1,42 @@
-basicworkflows
---------------
-This project contains new basic workflows developed for FirstSpirit 5.<br/>
-A workflow for release and one for delete that work in both, Java- and Webclient are provided.
-The workflows take account of dependencies so that potential generation errors are minimized and the accessibility of all elements can be ensured. The new workflows provide - in contrast to the existing workflows, known from earlier FirstSpirit versions - an enhanced function range for editors in both FirstSpirit-Clients. One can extend the functionality by implementing invividual extensions and customising the code to the characteristics of the project.
+# BasicWorkflows
 
+## Overview
 
-FirstSpirit and these workflows are developed by the e-Spirit AG (http://www.e-spirit.com).</br> 
-The head office of the e-Spirit AG is in Dortmund, Germany.</br></br>
-For more information please contact our helpdesk (helpdesk@e-spirit.com).
+This project contains the source files of the [BasicWorkflows](https://docs.e-spirit.com/module/basicworkflows/BasicWorkflows_Documentation_EN.html) module.
+
+The module provides new workflows for deleting or releasing elements in the SiteArchitect and the ContentCreator.
+
+It takes release and delete dependencies into account so that potential generation errors are minimized and the accessibility of elements is ensured.
+
+The workflows can be individually extended by setting up own implementations to fulfill project-specific needs.
+
+## Building the module
+
+**Requirements**
+* [Maven](https://maven.apache.org/)
+
+To build the module, simply run
+
+```
+mvn clean install
+```
+
+in the root directory.
+
+The built fsm file will be located at
+
+```
+./target/basicworkflows.fsm
+```
+
+## Resources
+
+[Documentation](https://docs.e-spirit.com/module/basicworkflows/BasicWorkflows_Documentation_EN.html)
+
+[Release notes](https://docs.e-spirit.com/module/basicworkflows/releasenotes/BasicWorkflows_Releasenotes_EN.html)
+
+## Legal Notices
+The BasicWorkflows module is a product of [Crownpeak Technology GmbH](https://www.crownpeak.com), Dortmund, Germany. The BasicWorkflows module is subject to the Apache-2.0 license.
+
+## Disclaimer
+This document is provided for information purposes only. Crownpeak may change the contents hereof without notice. This document is not warranted to be error-free, nor subject to any other warranties or conditions, whether expressed orally or implied in law, including implied warranties and conditions of merchantability or fitness for a particular purpose. Crownpeak specifically disclaims any liability with respect to this document and no contractual obligations are formed either directly or indirectly by this document. The technologies, functionality, services, and processes described herein are subject to change without notice.

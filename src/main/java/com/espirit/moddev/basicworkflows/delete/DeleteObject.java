@@ -1,21 +1,19 @@
-/*-
- * ========================LICENSE_START=================================
+/*
  * BasicWorkflows Module
  * %%
- * Copyright (C) 2012 - 2018 e-Spirit AG
+ * Copyright (C) 2012 - 2023 Crownpeak Technology GmbH - https://www.crownpeak.com
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * =========================LICENSE_END==================================
  */
 package com.espirit.moddev.basicworkflows.delete;
 
@@ -379,17 +377,22 @@ public class DeleteObject {
                 regardPageStore();
                 // add current PageRefStore element and PageRefFolders (up-recursive)
                 regardPageRefStore();
-            }
-            if (idProvider instanceof DocumentGroup) {
+            } else if (idProvider instanceof DocumentGroup) {
                 // add current PageRefStore element and PageRefFolders (up-recursive)
                 regardPageRefStore();
-            }
             //Added for media management in CC (since FS 5.2)
-            if (idProvider instanceof Media || idProvider instanceof MediaFolder) {
+            } else if (idProvider instanceof Media || idProvider instanceof MediaFolder) {
                 //false == don't delete parent folder, see FSFIVE-53
                 final boolean deleteEmptyParent = true;
                 // add current MediaElement element and MediaFolder (up-recursive)
                 regardMediaStore(deleteEmptyParent);
+            } else {
+                deleteObjects.add(idProvider);
+
+                if (idProvider.getStore().getType() != Store.Type.TEMPLATESTORE) {
+                    // release parent folder
+                    releaseObjects.add(idProvider.getParent());
+                }
             }
         } else {
             // JC
