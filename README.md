@@ -10,15 +10,24 @@ It takes release and delete dependencies into account so that potential generati
 
 The workflows can be individually extended by setting up own implementations to fulfill project-specific needs.
 
+## Package names
+
+The package names and structure have been adjusted to not conflict with the official implementation of the module.
+Therefore, to use the classes published here, the package names and structure must be adapted to your own specifications.
+
 ## Building the module
 
-**Requirements**
-* [Maven](https://maven.apache.org/)
+### Connect to artifactory
+
+Please see chapter 3.2 of the [FirstSpirit Guide:
+Developing Modules in the Cloud](https://docs.e-spirit.com/cloud/module-development/Module_Development_FirstSpirit_Guide_EN.pdf) on how to set up your artifactory credentials.
+
+### Run the build 
 
 To build the module, simply run
 
 ```
-mvn clean install
+./gradlew build
 ```
 
 in the root directory.
@@ -26,7 +35,7 @@ in the root directory.
 The built fsm file will be located at
 
 ```
-./target/basicworkflows.fsm
+fsm/build/fsm
 ```
 
 ## Resources
