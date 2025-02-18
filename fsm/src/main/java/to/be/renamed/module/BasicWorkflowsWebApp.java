@@ -17,7 +17,7 @@
  */
 package to.be.renamed.module;
 
-import to.be.renamed.components.annotations.WebAppComponent;
+import com.espirit.moddev.components.annotations.WebAppComponent;
 
 import de.espirit.firstspirit.module.AbstractWebApp;
 import de.espirit.firstspirit.module.WebApp;

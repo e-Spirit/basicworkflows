@@ -22,7 +22,7 @@ import to.be.renamed.module.util.FormEvaluator;
 import to.be.renamed.module.util.StoreUtil;
 import to.be.renamed.module.util.WorkflowConstants;
 import to.be.renamed.module.util.WorkflowSessionHelper;
-import to.be.renamed.components.annotations.PublicComponent;
+import com.espirit.moddev.components.annotations.PublicComponent;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.ReferenceEntry;

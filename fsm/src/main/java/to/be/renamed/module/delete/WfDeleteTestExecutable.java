@@ -21,7 +21,7 @@ import to.be.renamed.module.util.AbstractWorkflowExecutable;
 import to.be.renamed.module.util.Dialog;
 import to.be.renamed.module.util.WorkflowConstants;
 import to.be.renamed.module.util.WorkflowSessionHelper;
-import to.be.renamed.components.annotations.PublicComponent;
+import com.espirit.moddev.components.annotations.PublicComponent;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;

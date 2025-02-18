@@ -17,7 +17,7 @@
  */
 package to.be.renamed.module.util;
 
-import to.be.renamed.components.annotations.PublicComponent;
+import com.espirit.moddev.components.annotations.PublicComponent;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
