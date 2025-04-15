@@ -31,11 +31,8 @@ import de.espirit.firstspirit.workflow.WorkflowGroup;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ResourceBundle;
-
-import de.espirit.firstspirit.access.store.sitestore.SiteStoreFolder;
 
 /**
  * WorkflowStatusProvider that is used for the basic workflows. Distinguishes between Page, PageReference, DocumentGroup and Dataset.
@@ -66,9 +63,8 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         // Check the parent
         IDProvider parent = element.getParent();
         if (parent != null && !"root".equals(parent.getUid())) {
-            state = getElementReleaseState(parent);
-            if (state != State.RELEASED) {
-                return state;
+            if (!parent.isInReleaseStore()) {
+                return getElementReleaseState(parent);
             }
         }
 
