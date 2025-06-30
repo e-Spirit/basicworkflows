@@ -29,6 +29,8 @@ import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.workflow.WebeditElementStatusProviderPlugin;
 import de.espirit.firstspirit.workflow.WorkflowGroup;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -82,31 +84,31 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     }
 
     @Override
-    public List<WorkflowGroup> getWorkflowGroups(final IDProvider element) {
+    public @NotNull List<WorkflowGroup> getWorkflowGroups(final @NotNull IDProvider element) {
         final List<WorkflowGroup> collectedWorkflowGroups = new ArrayList<>();
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
 
+        String headline = switch (getReleaseState(element)) {
+            case IN_WORKFLOW -> bundle.getString("inWorkflow");
+            case CHANGED -> bundle.getString("modified");
+            case RELEASED -> bundle.getString("released");
+        };
+
         if (element instanceof PageRef && pageHasTask((PageRef) element)) {
-            final WorkflowGroup pageGroup = Factory.create(bundle.getString("page"),
-                Collections.<IDProvider>singletonList(((PageRef) element).getPage()));
+            final WorkflowGroup pageGroup = Factory.create(headline, Collections.singletonList(((PageRef) element).getPage()));
             collectedWorkflowGroups.add(pageGroup);
-        } else if (element instanceof PageRef || element instanceof Page) {
-            final WorkflowGroup pageRefGroup = Factory.create(bundle.getString("pageReference"), Collections.singletonList(element));
+        } else if (element instanceof PageRef || element instanceof Page || element instanceof DocumentGroup) {
+            final WorkflowGroup pageRefGroup = Factory.create(headline, Collections.singletonList(element));
             collectedWorkflowGroups.add(pageRefGroup);
-        } else if (element instanceof DocumentGroup) {
-            final WorkflowGroup documentGroup = Factory.create(bundle.getString("documentGroup"), Collections.singletonList(element));
-            collectedWorkflowGroups.add(documentGroup);
         } else if (element instanceof Dataset) {
             final List<IDProvider> dataSets = new ArrayList<>();
             dataSets.add(element);
-            final WorkflowGroup workflowDataset = Factory.create(bundle.getString("dataset"), dataSets);
+            final WorkflowGroup workflowDataset = Factory.create(headline, dataSets);
             collectedWorkflowGroups.add(workflowDataset);
         } else {
-            if (element != null) {
-                final String message = "No workflow group object created for element '%s'";
-                Logging.logWarning(String.format(message, element.getClass().getName()), LOGGER);
-            }
+            final String message = "No workflow group object created for element '%s'";
+            Logging.logWarning(String.format(message, element.getClass().getName()), LOGGER);
         }
         return collectedWorkflowGroups;
     }
