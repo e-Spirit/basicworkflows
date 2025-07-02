@@ -72,7 +72,7 @@ public class WfDeleteTestExecutable extends AbstractWorkflowExecutable {
             try {
                 // check test case or skip if wfDoTestFail is set
                 if (isNotFailedTest(workflowScriptContext)) {
-					List<List> lockedObjects = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfLockedObjects");
+                    List<List> lockedObjects = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfLockedObjects");
                     StringBuilder notReleased = new StringBuilder(bundle.getString("objectsLocked")).append(":\n\n");
                     for (List lockedObject : lockedObjects) {
                         String elementType = (String) lockedObject.get(0);
@@ -86,7 +86,7 @@ public class WfDeleteTestExecutable extends AbstractWorkflowExecutable {
             } catch (IllegalAccessException e) {
                 Logging.logError("Workflow Test Delete failed!", e, LOGGER);
                 // set in integration tests
-				final String suppressDialog = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfSuppressDialog");
+                final String suppressDialog = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfSuppressDialog");
                 if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
                     // show error message
                     Dialog dialog = new Dialog(workflowScriptContext);

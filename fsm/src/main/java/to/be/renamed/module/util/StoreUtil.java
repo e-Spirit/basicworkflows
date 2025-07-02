@@ -43,6 +43,7 @@ public class StoreUtil {
 
     /**
      * Constructor.
+     *
      * @param context the context to use.
      */
     public StoreUtil(BaseContext context) {
@@ -52,7 +53,7 @@ public class StoreUtil {
     /**
      * Load page ref by uid.
      *
-     * @param srcUid  the src uid
+     * @param srcUid the src uid
      * @return the page ref or null if srcUid is null or empty
      */
     public PageRef loadPageRefByUid(final String srcUid) {

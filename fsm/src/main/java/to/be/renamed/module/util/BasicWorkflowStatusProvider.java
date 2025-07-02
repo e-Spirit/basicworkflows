@@ -21,6 +21,7 @@ import com.espirit.moddev.components.annotations.PublicComponent;
 
 import de.espirit.common.base.Logging;
 import de.espirit.firstspirit.access.BaseContext;
+import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.contentstore.Dataset;
 import de.espirit.firstspirit.access.store.pagestore.Page;
@@ -34,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.ResourceBundle;
 
 /**
@@ -53,11 +55,11 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     public static final Class<?> LOGGER = BasicWorkflowStatusProvider.class;
 
     @Override
-    public State getReleaseState(final IDProvider element) {
+    public @NotNull State getReleaseState(final @NotNull IDProvider element) {
         State state;
 
         // Check the element
-        state = getElementReleaseState(element);
+        state = getElementReleaseState(element, null);
         if (state != State.RELEASED) {
             return state;
         }
@@ -66,18 +68,39 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         IDProvider parent = element.getParent();
         if (parent != null && !"root".equals(parent.getUid())) {
             if (!parent.isInReleaseStore()) {
-                return getElementReleaseState(parent);
+                return getElementReleaseState(parent, null);
             }
         }
 
         // Check the referencing page
-        if (element instanceof PageRef) {
-            final PageRef pageRef = (PageRef) element;
-            state = getElementReleaseState(pageRef.getPage());
-            if (state != State.RELEASED) {
-                return state;
-            }
+        if (element instanceof final PageRef pageRef) {
+            state = getElementReleaseState(Objects.requireNonNull(pageRef.getPage()), null);
+        }
 
+        return state;
+    }
+
+    @Override
+    public @NotNull State getReleaseState(@NotNull final IDProvider element, @NotNull final Language language) {
+        State state;
+
+        // Check the element
+        state = getElementReleaseState(element, language);
+        if (state != State.RELEASED) {
+            return state;
+        }
+
+        // Check the parent
+        IDProvider parent = element.getParent();
+        if (parent != null && !"root".equals(parent.getUid())) {
+            if (!parent.isReachableInReleaseStore(language)) {
+                return getElementReleaseState(parent, language);
+            }
+        }
+
+        // Check the referencing page
+        if (element instanceof final PageRef pageRef) {
+            state = getElementReleaseState(Objects.requireNonNull(pageRef.getPage()), language);
         }
 
         return state;
@@ -85,7 +108,6 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
 
     @Override
     public @NotNull List<WorkflowGroup> getWorkflowGroups(final @NotNull IDProvider element) {
-        final List<WorkflowGroup> collectedWorkflowGroups = new ArrayList<>();
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
 
@@ -95,6 +117,26 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
             case RELEASED -> bundle.getString("released");
         };
 
+        return getWorkflowGroups(element, headline);
+    }
+
+    @Override
+    public @NotNull List<WorkflowGroup> getWorkflowGroups(@NotNull final IDProvider element, @NotNull final Language language) {
+        ResourceBundle.clearCache();
+        final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
+
+        String headline = switch (getReleaseState(element, language)) {
+            case IN_WORKFLOW -> bundle.getString("inWorkflow");
+            case CHANGED -> bundle.getString("modified");
+            case RELEASED -> bundle.getString("released");
+        };
+
+        return getWorkflowGroups(element, headline);
+    }
+
+    @NotNull
+    private List<WorkflowGroup> getWorkflowGroups(@NotNull final IDProvider element, final String headline) {
+        final List<WorkflowGroup> collectedWorkflowGroups = new ArrayList<>();
         if (element instanceof PageRef && pageHasTask((PageRef) element)) {
             final WorkflowGroup pageGroup = Factory.create(headline, Collections.singletonList(((PageRef) element).getPage()));
             collectedWorkflowGroups.add(pageGroup);
@@ -113,16 +155,10 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
         return collectedWorkflowGroups;
     }
 
-    /**
-     * Returns the release state for the store element.
-     *
-     * @param element
-     * @return
-     */
-    private static State getElementReleaseState(final IDProvider element) {
+    private static State getElementReleaseState(final IDProvider element, final Language language) {
         if (element.hasTask()) {
             return State.IN_WORKFLOW;
-        } else if (isNotReleased(element)) {
+        } else if (isNotReleased(element, language)) {
             return State.CHANGED;
         }
 
@@ -130,13 +166,18 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     }
 
     /**
-     * Checks if the given element is currently released.
+     * Checks if the given element is not currently released.
      *
      * @param element the element
-     * @return true if the element is released
+     * @param language the language to check, can be null
+     * @return true if the element is not released
      */
-    private static boolean isNotReleased(final IDProvider element) {
-        return element.isReleaseSupported() && element.getReleaseStatus() != IDProvider.RELEASED;
+    private static boolean isNotReleased(final IDProvider element, final Language language) {
+        if (!element.isReleaseSupported()) {
+            return false;
+        } else {
+            return language == null ? element.getReleaseStatus() != IDProvider.RELEASED : element.getReleaseStatus(language) != IDProvider.RELEASED;
+        }
     }
 
     private static boolean pageHasTask(final PageRef element) {
@@ -144,7 +185,7 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     }
 
     @Override
-    public void setUp(final BaseContext baseContext) {
+    public void setUp(final @NotNull BaseContext baseContext) {
         this.context = baseContext;
     }
 

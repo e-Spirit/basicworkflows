@@ -17,8 +17,6 @@
  */
 package to.be.renamed.module.util;
 
-import java.util.Comparator;
-
 import to.be.renamed.module.release.ReleaseObject;
 
 import de.espirit.common.base.Logging;
@@ -28,6 +26,8 @@ import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.Store.Type;
 import de.espirit.firstspirit.access.store.StoreElement;
 import de.espirit.or.schema.Entity;
+
+import java.util.Comparator;
 
 public class StoreComparator implements Comparator<Object> {
 
@@ -59,8 +59,7 @@ public class StoreComparator implements Comparator<Object> {
         } else if (isPageStoreObject(type1)) {
             if (isMediaStoreObject(type2)) {
                 return 1;
-            }
-            else if (isPageStoreObject(type2)) {
+            } else if (isPageStoreObject(type2)) {
                 return 0;
             } else {
                 return -1;
@@ -75,7 +74,7 @@ public class StoreComparator implements Comparator<Object> {
             }
         }
     }
-    
+
     private boolean isMediaStoreObject(final Type type) {
         return type == Store.Type.MEDIASTORE;
     }

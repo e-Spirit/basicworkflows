@@ -16,8 +16,9 @@
  * limitations under the License.
  */
 /**
-Provides the release classes for the FirstSpirit Basic Workflows.
-@author stephan
-@since 1.0
-*/
+ * Provides the release classes for the FirstSpirit Basic Workflows.
+ *
+ * @author stephan
+ * @since 1.0
+ */
 package to.be.renamed.module.release;

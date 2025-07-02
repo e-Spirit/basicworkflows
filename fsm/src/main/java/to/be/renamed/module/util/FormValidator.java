@@ -20,6 +20,9 @@ package to.be.renamed.module.util;
 import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
+import de.espirit.firstspirit.access.store.contentstore.Dataset;
+import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
+import de.espirit.firstspirit.access.store.globalstore.ProjectProperties;
 import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.agency.BrokerAgent;
@@ -30,12 +33,8 @@ import de.espirit.firstspirit.agency.SpecialistsBroker;
 import de.espirit.firstspirit.agency.ValidationAgent;
 import de.espirit.or.schema.Entity;
 
-
 import java.util.Collection;
 import java.util.Set;
-
-import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
-import de.espirit.firstspirit.access.store.globalstore.ProjectProperties;
 
 /**
  * Convenience class to determine if a form is valid.
@@ -48,7 +47,7 @@ public class FormValidator {
     /**
      * The workflowScriptContext from the workflow.
      */
-    private WorkflowScriptContext workflowScriptContext;
+    private final WorkflowScriptContext workflowScriptContext;
 
     /**
      * Constructor for FormValidator.
@@ -112,7 +111,7 @@ public class FormValidator {
                 if (idProvider instanceof Section) {
                     // section has no uid so show page instead
                     element = "\n" + idProvider.getParent().getParent().getElementType() + ": " + idProvider.getParent().getParent().getUid() + "\n";
-                } else if (idProvider instanceof ProjectProperties || idProvider instanceof GCAFolder ) {
+                } else if (idProvider instanceof ProjectProperties || idProvider instanceof GCAFolder || idProvider instanceof Dataset) {
                     // element uid for error msg
                     element = "\n" + idProvider.getElementType() + "\n";
                 } else {

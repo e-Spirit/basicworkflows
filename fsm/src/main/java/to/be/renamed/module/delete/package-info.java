@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 /**
-Provides the delete classes for the FirstSpirit Basic Workflows.
-@author stephan
-@since 1.0
-*/
+ * Provides the delete classes for the FirstSpirit Basic Workflows.
+ *
+ * @author stephan
+ * @since 1.0
+ */
 package to.be.renamed.module.delete;
 

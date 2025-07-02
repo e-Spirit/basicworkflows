@@ -29,6 +29,7 @@ import de.espirit.firstspirit.module.WebApp;
     webXml = "web/web.xml"
 )
 public class BasicWorkflowsWebApp extends AbstractWebApp implements WebApp {
+
     @Override
     public void installed() {
         // Not used

@@ -37,7 +37,6 @@ import java.util.logging.Logger;
 public class WfShowActionDialogExecutable extends AbstractWorkflowExecutable {
 
     /**
-     *
      * @param params the Executable params
      * @return true if execution was successful
      */

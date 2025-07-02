@@ -49,7 +49,7 @@ public class WfShowRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
 
-		List<String> referencedObjects = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfReferencedObjects");
+        List<String> referencedObjects = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, "wfReferencedObjects");
         final String objectsInUse = bundle.getString("objectsInUse");
         StringBuilder notReleased = new StringBuilder(objectsInUse).append(":\n\n");
         int i = 0;
@@ -75,6 +75,4 @@ public class WfShowRelatedObjectsExecutable extends AbstractWorkflowExecutable {
 
         return true;
     }
-
-
 }

@@ -32,7 +32,7 @@ import java.util.Map;
 /**
  * This executable displays a dialog to select the next transition. If there is no transition selected (abort is pressed) the transition to a specific
  * target will be performed. The target is determined by its uid.
-  */
+ */
 @PublicComponent(name = "Delete WorkFlow Show Action Dialog Executable With Cancel Transition")
 public class WfShowActionDialogExecutableWithCancelTransition extends AbstractWorkflowExecutable {
 
@@ -74,12 +74,13 @@ public class WfShowActionDialogExecutableWithCancelTransition extends AbstractWo
             return false;
         }
     }
-    
+
     /**
-     * Find the transition 
+     * Find the transition
+     *
      * @param transitions
      * @param targetName
-     * @return 
+     * @return
      */
     private Transition getNextTransitionByTargetName(final Transition[] transitions, final String targetName) {
         for (Transition transition : transitions) {

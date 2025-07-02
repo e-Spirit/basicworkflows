@@ -20,6 +20,7 @@ package to.be.renamed.module.delete;
 import to.be.renamed.module.util.FsException;
 import to.be.renamed.module.util.FsLocale;
 import to.be.renamed.module.util.WorkflowConstants;
+
 import de.espirit.common.TypedFilter;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
@@ -40,15 +41,20 @@ import de.espirit.firstspirit.access.store.pagestore.Section;
 import de.espirit.firstspirit.access.store.sitestore.DocumentGroup;
 import de.espirit.firstspirit.access.store.sitestore.PageRef;
 import de.espirit.firstspirit.access.store.sitestore.PageRefFolder;
-import de.espirit.firstspirit.access.store.templatestore.*;
+import de.espirit.firstspirit.access.store.templatestore.Query;
+import de.espirit.firstspirit.access.store.templatestore.Schema;
+import de.espirit.firstspirit.access.store.templatestore.TableTemplate;
+import de.espirit.firstspirit.access.store.templatestore.TemplateStoreElement;
+import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.or.schema.Entity;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * This class provides methods to get the incoming references of the worklfow object and store them in the session.
+ * This class provides methods to get the incoming references of the workflow object and store them in the session.
  *
  * @author stephan
  * @since 1.0
@@ -62,7 +68,7 @@ public class WorkflowObject {
     /**
      * The workflowScriptContext from the workflow.
      */
-    private WorkflowScriptContext workflowScriptContext;
+    private final WorkflowScriptContext workflowScriptContext;
     /**
      * The content2 object from the workflow.
      */
@@ -74,7 +80,7 @@ public class WorkflowObject {
     /**
      * The ResourceBundle that contains language specific labels.
      */
-    private ResourceBundle bundle;
+    private final ResourceBundle bundle;
 
     /**
      * Constructor for WorkflowObject.
@@ -158,19 +164,20 @@ public class WorkflowObject {
 /** documentation example - end **/
 
         } else if (storeElement instanceof GlobalContentArea) {
-            // Element is a content folder object -> aborting" (make sure this test occurs before the gcafolder-test)
+            // Element is a content folder object -> aborting (make sure this test occurs before the gcafolder-test)
             abortDeletion("deleteGCAnotPossible");
 
         } else if (storeElement instanceof GCAFolder) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement));
 
-        } else if (isTemplate()) {
+        } else if (storeElement instanceof TemplateStoreElement) {
             // add outgoing references
             referencedObjects.addAll(getReferences(storeElement));
 
             if (storeElement instanceof Schema && referencedObjects.isEmpty()) {
-                TypedFilter<StoreElement> filter = new TypedFilter<StoreElement>(StoreElement.class) {
+                TypedFilter<StoreElement> filter = new TypedFilter<>(StoreElement.class) {
+                    @Serial
                     private static final long serialVersionUID = 6357324775263530877L;
 
                     @Override
@@ -185,24 +192,19 @@ public class WorkflowObject {
             }
 
         } else if (storeElement instanceof ProjectProperties) {
-            // Element is a project property object -> aborting"
+            // Element is a project property object -> aborting
             abortDeletion("deletePPnotPossible");
 
         } else if (storeElement instanceof Content2) {
-            // Element is a content2 folder object -> aborting"
+            // Element is a content2 folder object -> aborting
             abortDeletion("deleteC2notPossible");
 
         } else if (storeElement instanceof ContentFolder) {
-            // Element is a content folder object -> aborting"
+            // Element is a content folder object -> aborting
             abortDeletion("deleteCFnotPossible");
         }
         storeReferences(referencedObjects);
         return referencedObjects;
-    }
-
-    private boolean isTemplate() {
-        // In FirstSpirit 5.0 Query does not inherit from TemplateStoreElement
-        return storeElement instanceof TemplateStoreElement || storeElement instanceof Query;
     }
 
     private void abortDeletion(String errorMessageKey) {
@@ -215,7 +217,7 @@ public class WorkflowObject {
      * @param storeElement The storeElement to get references from.
      * @return the list of references.
      */
-    private static List<IDProvider> getReferences(StoreElement storeElement) {
+    private List<IDProvider> getReferences(StoreElement storeElement) {
         List<IDProvider> references = new ArrayList<>();
 
         // add outgoing references
@@ -240,8 +242,7 @@ public class WorkflowObject {
                 referencedObjects.add(
                     section.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + section.getName() + ", " + section.getId()
                     + ")");
-            } else if (obj instanceof Entity) {
-                Entity ent = (Entity) obj;
+            } else if (obj instanceof final Entity ent) {
                 referencedObjects.add(
                     ent.getIdentifier().getEntityTypeName() + " (" + ent.getIdentifier().getEntityTypeName() + ", ID#" + ent.get("fs_id") + ")");
             } else {
@@ -273,5 +274,4 @@ public class WorkflowObject {
             return entity.getKeyValue().toString();
         }
     }
-
 }

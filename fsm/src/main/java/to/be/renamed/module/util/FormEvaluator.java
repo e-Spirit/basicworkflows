@@ -18,14 +18,15 @@
 package to.be.renamed.module.util;
 
 import de.espirit.common.base.Logging;
+import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.editor.value.Option;
 import de.espirit.firstspirit.access.store.templatestore.WorkflowScriptContext;
 import de.espirit.firstspirit.access.store.templatestore.gom.GomFormElement;
 import de.espirit.firstspirit.forms.FormData;
 import de.espirit.firstspirit.forms.FormField;
 
-import to.be.renamed.module.release.WfFindRelatedObjectsExecutable;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -36,7 +37,7 @@ import java.util.Set;
  */
 public class FormEvaluator {
 
-    public static final Class<WfFindRelatedObjectsExecutable> LOGGER = WfFindRelatedObjectsExecutable.class;
+    public static final Class<?> LOGGER = FormEvaluator.class;
     /**
      * The workflowScriptContext from the workflow.
      */
@@ -60,10 +61,10 @@ public class FormEvaluator {
     public boolean getCheckboxValue(final String varname) {
         boolean checkboxValue = false;
 
-        final Object relwMedia = workflowScriptContext.getTask().getCustomAttributes().get(varname);
-        if (relwMedia != null) {
+        final Object attributeValue = workflowScriptContext.getTask().getCustomAttributes().get(varname);
+        if (attributeValue != null) {
             // test case
-            if (isReleaseMedia(relwMedia)) {
+            if (WorkflowConstants.TRUE.equals(attributeValue)) {
                 checkboxValue = true;
             }
         } else {
@@ -75,10 +76,13 @@ public class FormEvaluator {
             final GomFormElement formElement = formData.getForm().findEditor(varname);
             if (formElement == null) {
                 // no formfield with given name
-                Logging.logWarning("form field with name '" + varname + "' not existing (using default value 'false') - seems your workflow is outdated - please update!", LOGGER);
+                Logging.logWarning("Form field with name '" + varname
+                                   + "' not existing (using default value 'false') - seems your workflow is outdated - please update!", LOGGER);
                 return false;
             }
-            final FormField<Set<Option>> formField = (FormField<Set<Option>>) formData.get(workflowScriptContext.getProject().getMasterLanguage(), varname);
+            final FormField<Set<Option>>
+                formField =
+                (FormField<Set<Option>>) formData.get(workflowScriptContext.getProject().getMasterLanguage(), varname);
             if (formField == null) {
                 return false;
             }
@@ -91,7 +95,34 @@ public class FormEvaluator {
         return checkboxValue;
     }
 
-    private static boolean isReleaseMedia(Object relwMedia) {
-        return WorkflowConstants.TRUE.equals(relwMedia);
+    public Language[] getLanguages() {
+        List<Language> languages = new ArrayList<>();
+        final FormData formData = workflowScriptContext.getFormData();
+        if (formData == null) {
+            return new Language[0];
+        }
+        final GomFormElement formElement = formData.getForm().findEditor(WorkflowConstants.LANGUAGES_FORM_REFNAME);
+        if (formElement == null) {
+            // no formfield with given name
+            Logging.logWarning("Form field with name '" + WorkflowConstants.LANGUAGES_FORM_REFNAME
+                               + "' not existing (using default value 'false') - seems your workflow is outdated - please update!", LOGGER);
+            return new Language[0];
+        }
+        final FormField<Set<Option>>
+            formField =
+            (FormField<Set<Option>>) formData.get(workflowScriptContext.getProject().getMasterLanguage(), WorkflowConstants.LANGUAGES_FORM_REFNAME);
+        if (formField == null) {
+            return new Language[0];
+        }
+        final Set<Option> options = formField.get();
+
+        for (Option option : options) {
+            Language language = (Language) option.getValue();
+            if (language != null) {
+                languages.add(language);
+            }
+        }
+
+        return languages.toArray(new Language[0]);
     }
 }

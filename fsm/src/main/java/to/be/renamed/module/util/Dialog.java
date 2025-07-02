@@ -27,7 +27,7 @@ import de.espirit.firstspirit.ui.operations.RequestOperation;
  */
 public class Dialog {
 
-    private SpecialistsBroker context;
+    private final SpecialistsBroker context;
 
     /**
      * Instantiates a new Dialog.

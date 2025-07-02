@@ -98,7 +98,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
 
                 String message = createMessage(workflowScriptContext, bundle, storeElement);
 
-                if (message.length() > 0) {
+                if (!message.isEmpty()) {
                     showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING), message);
                 }
 
@@ -130,7 +130,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
                                   bundle.getString("hasChildren"));
     }
 
-    private static boolean hasNoChildren(final StoreElement storeElement, final StoreElementFilter filter) {
+    private boolean hasNoChildren(final StoreElement storeElement, final StoreElementFilter filter) {
         return storeElement.getChildren(filter, true).getFirst() == null;
     }
 
@@ -142,12 +142,10 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
             && !workflowScriptContext.is(BaseContext.Env.WEBEDIT)) {
 
             final StoreElementFilter sitestoreFilter = on(PageRefFolder.class, PageRef.class, DocumentGroup.class);
-            Iterator iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
+            Iterator<StoreElement> iter = storeElement.getParent().getChildren(sitestoreFilter, false).iterator();
             iter.next();
             if (!iter.hasNext()) {
-                if (message.length() == 0) {
-                    message += "\n\n";
-                }
+                message += "\n\n";
                 message += bundle.getString("lastElement") + "\n";
             }
         }
@@ -166,7 +164,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
             } else {
                 // query and close (if confirmed) all open workflow instances
                 QueryAgent queryAgent = workflowScriptContext.requireSpecialist(QueryAgent.TYPE);
-                Iterable<IDProvider> searchResults = queryAgent.answer("fs.workflow = *");
+                Iterable<IDProvider> searchResults = queryAgent.answer("fs.workflow = *", null);
                 Map<Task, IDProvider> openInstances = getOpenInstances(element, searchResults);
 
                 if (!openInstances.isEmpty()) {
@@ -193,17 +191,16 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
         return dialogMessage;
     }
 
-    private boolean abortIfCCAndImageWithReferences(final WorkflowScriptContext workflowScriptContext) {
-        if (workflowScriptContext.is(BaseContext.Env.WEBEDIT) && (workflowScriptContext.getWorkflowable() instanceof Media || workflowScriptContext.getWorkflowable() instanceof MediaFolder)) {
+    private void abortIfCCAndImageWithReferences(final WorkflowScriptContext workflowScriptContext) {
+        if (workflowScriptContext.is(BaseContext.Env.WEBEDIT) && (workflowScriptContext.getWorkflowable() instanceof Media
+                                                                  || workflowScriptContext.getWorkflowable() instanceof MediaFolder)) {
             StoreElement element = (StoreElement) workflowScriptContext.getWorkflowable();
             final ReferenceEntry[] incomingReferences = element.getIncomingReferences();
             final boolean abort = incomingReferences != null && incomingReferences.length > 0;
             if (abort) {
                 displayMessageWithReferences(workflowScriptContext, element, incomingReferences);
             }
-            return abort;
         }
-        return false;
     }
 
     private void displayMessageWithReferences(final WorkflowScriptContext workflowScriptContext, final StoreElement element,
@@ -212,8 +209,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
         ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, fsLocale.get());
         StringBuilder builder = new StringBuilder();
         for (ReferenceEntry referencedObject : incomingReferences) {
-            if (referencedObject.getReferencedObject() instanceof IDProvider) {
-                IDProvider storeElement = (IDProvider) referencedObject.getReferencedObject();
+            if (referencedObject.getReferencedObject() instanceof final IDProvider storeElement) {
                 builder.append("\n- ");
                 builder.append(storeElement.getDisplayName(fsLocale.getLanguage()));
                 builder.append(" (").append(storeElement.getId()).append(")");
@@ -221,16 +217,16 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
         }
         final String refs = builder.toString();
         Logging.logWarning("Cannot be deleted, because " + element.getReferenceName() + " has incoming refs:" + refs, LOGGER);
-        if(element instanceof Media) {
+        if (element instanceof Media) {
             showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING),
                        bundle.getString(WorkflowConstants.IMAGE_HAS_REFERENCES) + refs);
         } else {
             showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.WARNING),
-                                   bundle.getString(WorkflowConstants.IMAGE_FOLDER_HAS_REFERENCES) + refs);
+                       bundle.getString(WorkflowConstants.IMAGE_FOLDER_HAS_REFERENCES) + refs);
         }
     }
 
-    private static boolean isFolderCheckFailTrue(WorkflowScriptContext workflowScriptContext) {
+    private boolean isFolderCheckFailTrue(WorkflowScriptContext workflowScriptContext) {
         final Object customAttribute = getCustomAttribute(workflowScriptContext, WF_FOLDER_CHECK_FAIL);
         return WorkflowConstants.TRUE.equals(customAttribute);
     }
@@ -238,7 +234,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
     /**
      * Checks whether the element on which the workflow is executed, is the workflow itself.
      */
-    private static boolean isExecutedWorkflow(IDProvider element, Workflow workflow) {
+    private boolean isExecutedWorkflow(IDProvider element, Workflow workflow) {
         String elementUid = element.getUid();
         String workflowUid = workflow.getUid();
         return elementUid.equals(workflowUid);
@@ -247,7 +243,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
     /**
      * Returns all open instances from the given workflow element.
      */
-    private static Map<Task, IDProvider> getOpenInstances(IDProvider element, Iterable<IDProvider> searchResults) {
+    private Map<Task, IDProvider> getOpenInstances(IDProvider element, Iterable<IDProvider> searchResults) {
         Map<Task, IDProvider> openInstances = new HashMap<Task, IDProvider>();
         for (IDProvider result : searchResults) {
             String workflowUid = result.getTask().getWorkflow().getUid();
@@ -273,9 +269,7 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
                 element.save();
                 element.setLock(false, true);
                 element.refresh();
-            } catch (LockException e) {
-                Logging.logError(e.getMessage(), e, LOGGER);
-            } catch (ElementDeletedException e) {
+            } catch (LockException | ElementDeletedException e) {
                 Logging.logError(e.getMessage(), e, LOGGER);
             }
 
@@ -291,5 +285,4 @@ public class WfCheckPrerequisitesExecutable extends AbstractWorkflowExecutable {
             }
         }
     }
-
 }

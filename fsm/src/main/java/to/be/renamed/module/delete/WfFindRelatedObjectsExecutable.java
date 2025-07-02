@@ -47,7 +47,7 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         final WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
         final ResourceBundle bundle = loadResourceBundle(workflowScriptContext);
         final WorkflowObject workflowObject = new WorkflowObject(workflowScriptContext);
-        final ArrayList<Object> referencedObjects = new ArrayList<Object>();
+        final ArrayList<Object> referencedObjects = new ArrayList<>();
 
         if (isStartedOnDatasource(workflowScriptContext)) {
             referencedObjects.addAll(workflowObject.getRefObjectsFromEntity());

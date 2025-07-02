@@ -27,6 +27,7 @@ import com.espirit.moddev.components.annotations.PublicComponent;
 
 import de.espirit.common.base.Logging;
 import de.espirit.common.util.Listable;
+import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.store.IDProvider;
 import de.espirit.firstspirit.access.store.Store;
 import de.espirit.firstspirit.access.store.StoreElement;
@@ -60,13 +61,11 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
      */
     public static final Class<?> LOGGER = WfFindRelatedObjectsExecutable.class;
 
-
-
     @Override
     @SuppressWarnings("unchecked")
     public Object execute(final Map<String, Object> params) {
         final WorkflowScriptContext workflowScriptContext = (WorkflowScriptContext) params.get(WorkflowConstants.CONTEXT);
-		removeOldValuesFromSession(workflowScriptContext);
+        removeOldValuesFromSession(workflowScriptContext);
         final StoreUtil storeUtil = new StoreUtil(workflowScriptContext);
 
         final IDProvider releaseElement = workflowScriptContext.getElement();
@@ -75,14 +74,15 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         boolean isReleasable = true;
 
         final FormEvaluator formEvaluator = new FormEvaluator(workflowScriptContext);
+        final Language[] languages = formEvaluator.getLanguages();
         boolean releaseRecursively = formEvaluator.getCheckboxValue(WorkflowConstants.RECURSIVE_FORM_REFNAME);
 
         // for recursive release, write children to session
         if (releaseRecursively) {
             if (releaseElement instanceof PageFolder || releaseElement instanceof MediaFolder || releaseElement instanceof PageRefFolder
-                    || releaseElement instanceof GCAFolder) {
+                || releaseElement instanceof GCAFolder) {
                 final Map<Long, Store.Type> childrenIdMap = getChildrenOf(releaseElement, storeUtil);
-                Logging.logDebug("write IdMap: " + childrenIdMap.toString(), LOGGER);
+                Logging.logDebug("Write IdMap: " + childrenIdMap, LOGGER);
                 writeObjectToSession(workflowScriptContext, WorkflowConstants.WF_RECURSIVE_CHILDREN, childrenIdMap);
             } else {
                 releaseRecursively = false;
@@ -91,7 +91,9 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         }
 
         // For A/B Testing it is possible to add an additional Workflow step that collects FirstSpirit Objects to release (i.e. Variants)
-		final Object relatedPageRefElements = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.RELATED_PAGEREF_ELEMENTS);
+        final Object
+            relatedPageRefElements =
+            WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.RELATED_PAGEREF_ELEMENTS);
         List<String> relatedPageRefUids = null;
         if (relatedPageRefElements instanceof List) {
             relatedPageRefUids = (List<String>) relatedPageRefElements;
@@ -101,21 +103,22 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         if (relatedPageRefUids != null && !relatedPageRefUids.isEmpty()) {
             for (final String pageRefUid : relatedPageRefUids) {
                 final PageRef pageRef = new StoreUtil(workflowScriptContext).loadPageRefByUid(pageRefUid);
-                if (hasReleaseIssues(workflowScriptContext, pageRef)) {
+                if (hasReleaseIssues(workflowScriptContext, pageRef, languages)) {
                     isReleasable = false;
                 }
             }
         } else {
             // check if current element is releasable
-            if (hasReleaseIssues(workflowScriptContext, workflowScriptContext.getElement())) {
+            if (hasReleaseIssues(workflowScriptContext, workflowScriptContext.getElement(), languages)) {
                 isReleasable = false;
             }
             if (releaseRecursively) {
-                final List<IDProvider> childrenList = new ArrayList<>();
-				final Map<Long, Store.Type> childrenIdMap = WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.WF_RECURSIVE_CHILDREN);
-                childrenList.addAll(loadChildrenList(workflowScriptContext, childrenIdMap));
+                final Map<Long, Store.Type>
+                    childrenIdMap =
+                    WorkflowSessionHelper.readObjectFromSession(workflowScriptContext, WorkflowConstants.WF_RECURSIVE_CHILDREN);
+                final List<IDProvider> childrenList = new ArrayList<>(loadChildrenList(workflowScriptContext, childrenIdMap));
                 for (final IDProvider idProvider : childrenList) {
-                    isReleasable = !hasReleaseIssues(workflowScriptContext, idProvider) && isReleasable;
+                    isReleasable = isReleasable && !hasReleaseIssues(workflowScriptContext, idProvider, languages);
                 }
             }
         }
@@ -143,14 +146,14 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
     }
 
 
-	private void removeOldValuesFromSession(WorkflowScriptContext workflowScriptContext) {
+    private void removeOldValuesFromSession(WorkflowScriptContext workflowScriptContext) {
         Map<Object, Object> workflowSession = workflowScriptContext.getSession();
-		workflowSession.remove(WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
-		workflowSession.remove(WorkflowConstants.WF_BROKEN_REFERENCES);
-	}
+        workflowSession.remove(WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
+        workflowSession.remove(WorkflowConstants.WF_BROKEN_REFERENCES);
+    }
 
 
-    private static Map<Long, Store.Type> getChildrenOf(final IDProvider releaseElement, final StoreUtil storeUtil) {
+    private Map<Long, Store.Type> getChildrenOf(final IDProvider releaseElement, final StoreUtil storeUtil) {
         final StoreElementFilter filter;
         final Map<Long, Store.Type> childrenIdMap = new HashMap<>();
 
@@ -169,12 +172,14 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
 
     /**
      * Checks if the referenced objects of the supplied idProvider can be released.
-     * In case of a recursive release additionally checks the idProvider itself.
-     * @param workflowScriptContext the context to use.
-     * @param idProvider to check.
+     * In case of a recursive release, additionally checks the idProvider itself.
+     *
+     * @param workflowScriptContext The context to use.
+     * @param idProvider            The element to check.
+     * @param languages             The languages to consider during the release check.
      * @return true if there will be some issues during release.
      */
-    private static boolean hasReleaseIssues(final WorkflowScriptContext workflowScriptContext, final IDProvider idProvider) {
+    private boolean hasReleaseIssues(final WorkflowScriptContext workflowScriptContext, final IDProvider idProvider, final Language[] languages) {
         final WorkflowObject workflowObject = new WorkflowObject(workflowScriptContext);
 
         final FormEvaluator formEvaluator = new FormEvaluator(workflowScriptContext);
@@ -189,17 +194,17 @@ public class WfFindRelatedObjectsExecutable extends AbstractWorkflowExecutable {
         if (isStartedOnDatasource(workflowScriptContext)) {
             referencedObjects.addAll(workflowObject.getRefObjectsFromEntity(true));
         } else {
-            referencedObjects.addAll(workflowObject.getRefObjectsFromStoreElement(true, false));
+            referencedObjects.addAll(workflowObject.getRefObjectsFromStoreElement(true, false, languages));
         }
 
         // check element itself in case of a recursive release, otherwise the element gets already checked by the elementStatusProvider.
-        if(releaseRecursively && idProvider != workflowScriptContext.getElement()) {
+        if (releaseRecursively && idProvider != workflowScriptContext.getElement()) {
             referencedObjects.add(idProvider);
         }
 
-        final boolean releaseWithMedia = formEvaluator.getCheckboxValue("wf_releasewmedia");
+        final boolean releaseWithMedia = formEvaluator.getCheckboxValue(WorkflowConstants.MEDIA_FORM_REFNAME);
 
-        final ReferenceResult referenceResult = workflowObject.checkReferences(referencedObjects, releaseWithMedia);
+        final ReferenceResult referenceResult = workflowObject.checkReferences(referencedObjects, releaseWithMedia, languages);
 
         return referenceResult.hasReleaseIssues(releaseWithMedia);
     }

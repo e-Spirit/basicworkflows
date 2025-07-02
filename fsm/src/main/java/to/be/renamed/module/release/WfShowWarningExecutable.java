@@ -60,5 +60,4 @@ public class WfShowWarningExecutable extends AbstractWorkflowExecutable {
 
         return true;
     }
-
 }

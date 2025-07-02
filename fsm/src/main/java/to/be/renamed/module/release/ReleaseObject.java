@@ -26,6 +26,7 @@ import to.be.renamed.module.util.StoreUtil;
 import to.be.renamed.module.util.WorkflowConstants;
 
 import de.espirit.common.base.Logging;
+import de.espirit.firstspirit.access.Language;
 import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.store.BasicElementInfo;
 import de.espirit.firstspirit.access.store.BasicInfo;
@@ -34,6 +35,7 @@ import de.espirit.firstspirit.access.store.ReleaseProblem;
 import de.espirit.firstspirit.access.store.contentstore.Content2;
 import de.espirit.firstspirit.access.store.contentstore.ContentFolder;
 import de.espirit.firstspirit.access.store.contentstore.ContentWorkflowable;
+import de.espirit.firstspirit.access.store.contentstore.Dataset;
 import de.espirit.firstspirit.access.store.globalstore.GCAFolder;
 import de.espirit.firstspirit.access.store.globalstore.GCAPage;
 import de.espirit.firstspirit.access.store.globalstore.ProjectProperties;
@@ -55,7 +57,7 @@ import de.espirit.or.Session;
 import de.espirit.or.schema.Entity;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,6 +72,9 @@ import java.util.Set;
  */
 public class ReleaseObject {
 
+    /**
+     * The dialog used for displaying messages to the user.
+     */
     private final Dialog dialog;
 
     /**
@@ -91,7 +96,7 @@ public class ReleaseObject {
     /**
      * The List of validation Errors.
      */
-	private final Set<String> validationErrorList = new HashSet<>();
+    private final Set<String> validationErrorList = new HashSet<>();
     /**
      * The logging class to use.
      */
@@ -101,7 +106,7 @@ public class ReleaseObject {
      * Constructor for ReleaseObject with an Entity.
      *
      * @param workflowScriptContext The workflowScriptContext from the workflow.
-     * @param releaseEntity The Entity that is to be released.
+     * @param releaseEntity         The Entity that is to be released.
      */
     ReleaseObject(final WorkflowScriptContext workflowScriptContext, final Entity releaseEntity) {
         this(workflowScriptContext);
@@ -112,7 +117,7 @@ public class ReleaseObject {
      * Constructor for ReleaseObject with a list of Objects.
      *
      * @param workflowScriptContext The workflowScriptContext from the workflow.
-     * @param releaseObjects The list of objects that are to be released.
+     * @param releaseObjects        The list of objects that are to be released.
      */
     ReleaseObject(final WorkflowScriptContext workflowScriptContext, final List<Object> releaseObjects) {
         this(workflowScriptContext);
@@ -130,11 +135,12 @@ public class ReleaseObject {
      * Main release method that distinguishes between Entity and StoreElement. StoreElements are released within this method. For entities the
      * releaseEntity method is called.
      *
-     * @param checkOnly Determines if the method should do only a check or really release the object.
+     * @param checkOnly          Determines if the method should do only a check or really release the object.
      * @param releaseRecursively do a recursive release?
+     * @param languages          The languages to release.
      * @return true if successful.
      */
-    public boolean release(final boolean checkOnly, final boolean releaseRecursively) {
+    public boolean release(final boolean checkOnly, final boolean releaseRecursively, final Language[] languages) {
         final boolean result;
         final Set<BasicInfo> lockedList = new HashSet<>();
         final Set<BasicInfo> permList = new HashSet<>();
@@ -145,7 +151,7 @@ public class ReleaseObject {
             final Content2 content2 = contentWorkflowable.getContent();
             result = releaseEntity(content2, this.entity, checkOnly);
         } else {
-            result = releaseStoreElement(checkOnly, lockedList, permList, releaseRecursively);
+            result = releaseStoreElement(checkOnly, lockedList, permList, releaseRecursively, languages);
         }
 
         // set in integration tests
@@ -180,7 +186,7 @@ public class ReleaseObject {
     private void createErrorMessage(Set<BasicInfo> infoList, StringBuilder errorMsg) {
         for (final BasicInfo missing : infoList) {
             long missingId = 0;
-            if(!missing.isEntity()) {
+            if (!missing.isEntity()) {
                 BasicElementInfo basicElementInfo = (BasicElementInfo) missing;
                 missingId = basicElementInfo.getNodeId();
             }
@@ -198,49 +204,35 @@ public class ReleaseObject {
         }
     }
 
-    private boolean releaseStoreElement(final boolean checkOnly, final Set<BasicInfo> lockedList, final Set<BasicInfo> permList, final boolean releaseRecursively) {
+    private boolean releaseStoreElement(final boolean checkOnly, final Set<BasicInfo> lockedList, final Set<BasicInfo> permList,
+                                        final boolean releaseRecursively, final Language[] languages) {
         boolean result = true;
 
         OperationAgent operationAgent = workflowScriptContext.requireSpecialist(OperationAgent.TYPE);
-        ReleaseOperation releaseOperation = operationAgent.getOperation(ReleaseOperation.TYPE);
-        ReleaseOperation.ReleaseResult releaseResult = null;
+        ReleaseOperation releaseOperation;
+        ReleaseOperation.ReleaseResult releaseResult;
 
         final List<IDProvider> customReleaseElements = getCustomReleaseElements(WorkflowConstants.RELEASE_PAGEREF_ELEMENTS);
 
         try {
-            Collections.sort(releaseObjects, new StoreComparator());
+            releaseObjects.sort(new StoreComparator());
             for (final Object object : releaseObjects) {
                 if (!(object instanceof ReferenceEntry && ((ReferenceEntry) object).getReferencedObject() instanceof Entity)) {
-                    final IDProvider currentObjForRelease;
-                    if (object instanceof IDProvider) {
-                        currentObjForRelease = (IDProvider) object;
-                    } else {
-                        currentObjForRelease = ((ReferenceEntry) object).getReferencedElement();
-                    }
-                    // release only referenced media, workflow object and unreleased parent
-                    // pagereffolders
-                    if (currentObjForRelease == workflowScriptContext.getElement()
-                        || (isPageRef(workflowScriptContext.getElement())
-                                && currentObjForRelease == ((PageRef) workflowScriptContext.getElement()).getPage())
-                        || isMedia(currentObjForRelease) || isPageRefFolder(currentObjForRelease) || isSiteStoreRoot(currentObjForRelease)
-                        || customReleaseElements.contains(currentObjForRelease)
-                        || ((new FormEvaluator(workflowScriptContext)).getCheckboxValue(WorkflowConstants.RECURSIVE_FORM_REFNAME)
-                                    && (isPageFolder(currentObjForRelease) || isPage(currentObjForRelease) || isMediaFolder(currentObjForRelease)
-                                        || isMedia(currentObjForRelease) || isPageRefFolder(currentObjForRelease) || isPageRef(currentObjForRelease)
-                                        || isDocumentGroup(currentObjForRelease) || isGcaFolder(currentObjForRelease)
-                                        || isGcaPage(currentObjForRelease)))) {
+                    IDProvider currentObjForRelease = getObjectAsIDProvider(object);
+                    if (isReleasable(currentObjForRelease, customReleaseElements)) {
                         if (workflowScriptContext.getProject().getId() == currentObjForRelease.getProject().getId()) {
                             Logging.logInfo("Prepare " + (checkOnly ? "test " : "") + "release for: " + currentObjForRelease.getId(), LOGGER);
                             // only release items that are not yet released
-                            if ((currentObjForRelease.getReleaseStatus() != IDProvider.RELEASED || releaseRecursively)
-                                && !isTemplate(currentObjForRelease) && !isDataSource(currentObjForRelease) && !isDataSourceFolder(currentObjForRelease)) {
+                            int
+                                releaseStatus =
+                                languages.length > 0 ? currentObjForRelease.getReleaseStatus(languages) : currentObjForRelease.getReleaseStatus();
+                            if (shouldBeReleased(releaseStatus, releaseRecursively, currentObjForRelease)) {
                                 // check rules
                                 final String validationError = new FormValidator(workflowScriptContext).isValid(currentObjForRelease);
                                 if (validationError != null) {
                                     validationErrorList.add(validationError);
                                 }
-                                // check rules for sections of pages (as checkrules is not
-                                // recursive)
+                                // check rules for sections of pages (as checkrules is not recursive)
                                 if (isPage(currentObjForRelease)) {
                                     for (final Section<?> section : currentObjForRelease.getChildren(Section.class, true)) {
                                         final String validationErrorsSection = new FormValidator(workflowScriptContext).isValid(section);
@@ -249,9 +241,9 @@ public class ReleaseObject {
                                         }
                                     }
                                 }
-								if (releaseRecursively && isChildrenOf(currentObjForRelease, workflowScriptContext.getElement())) {
-									continue;
-								}
+                                if (releaseRecursively && isChildrenOf(currentObjForRelease, workflowScriptContext.getElement())) {
+                                    continue;
+                                }
                                 if (validationErrorList.isEmpty()) {
                                     // check release
                                     if (currentObjForRelease == workflowScriptContext.getElement()) {
@@ -259,46 +251,18 @@ public class ReleaseObject {
                                         currentObjForRelease.setLock(false, false);
                                     }
 
-                                    if (isPageRef(currentObjForRelease)) {
-                                        // in order to decide if a pageref can be released, one has
-                                        // to check if the referenced page exists
-                                        final IDProvider.DependentReleaseType releaseType;
-                                        if(checkOnly) {
-                                            releaseType = IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY;
-                                        } else {
-                                            releaseType = IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE;
-                                        }
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(releaseType).perform(currentObjForRelease);
-                                    } else if (isPageRefFolder(currentObjForRelease)) {
-                                        // in order to decide if a pageref can be released, one has
-                                        // to check if the referenced page exists
-                                        final IDProvider.DependentReleaseType releaseType;
-                                        if(checkOnly) {
-                                            releaseType = IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY;
-                                        } else {
-                                            releaseType = IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE;
-                                        }
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).recursive(releaseRecursively).ensureAccessibility(true).dependentReleaseType(releaseType).perform(currentObjForRelease);
-                                    } else if (isPage(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (isPageFolder(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(releaseRecursively).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (isDocumentGroup(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (isMedia(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (isMediaFolder(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(true).recursive(releaseRecursively).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (isGcaPage(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (isGcaFolder(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(releaseRecursively) .dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (currentObjForRelease instanceof ProjectProperties) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
-                                    } else if (isSiteStoreRoot(currentObjForRelease)) {
-                                        releaseResult = releaseOperation.checkOnly(checkOnly).ensureAccessibility(false).recursive(releaseRecursively).dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE).perform(currentObjForRelease);
+                                    releaseOperation = operationAgent.getOperation(ReleaseOperation.TYPE);
+
+                                    releaseOperation.checkOnly(checkOnly);
+                                    if (languages.length > 0) {
+                                        releaseOperation.languages(languages);
+                                        Logging.logInfo("Releasing languages: " + Arrays.toString(languages), getClass());
+                                    } else {
+                                        Logging.logInfo("Releasing all languages.", getClass());
                                     }
-                                   result = handleResult(lockedList, permList, releaseResult, currentObjForRelease);
+
+                                    releaseResult = performRelease(currentObjForRelease, checkOnly, releaseOperation, releaseRecursively);
+                                    result = handleResult(lockedList, permList, releaseResult, currentObjForRelease);
                                     if (currentObjForRelease.equals(workflowScriptContext.getElement())) {
                                         currentObjForRelease.setLock(true, false);
                                     }
@@ -309,7 +273,7 @@ public class ReleaseObject {
                             }
                         }
                     }
-
+                    currentObjForRelease.refresh();
                 }
             }
         } catch (final Exception e) {
@@ -319,55 +283,133 @@ public class ReleaseObject {
         return result;
     }
 
-    private static boolean isDataSourceFolder(final IDProvider idProvider) {
+    private ReleaseOperation.ReleaseResult performRelease(final IDProvider currentObjForRelease, final boolean checkOnly,
+                                                          final ReleaseOperation releaseOperation, final boolean releaseRecursively) throws Exception {
+        ReleaseOperation.ReleaseResult releaseResult = null;
+        if (isPageRef(currentObjForRelease)) {
+            // in order to decide if a pageref can be released, one has
+            // to check if the referenced page exists
+            final IDProvider.DependentReleaseType releaseType;
+            if (checkOnly) {
+                releaseType = IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY;
+            } else {
+                releaseType = IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE;
+            }
+            releaseResult =
+                releaseOperation.ensureAccessibility(true).recursive(false).dependentReleaseType(releaseType)
+                    .perform(currentObjForRelease);
+        } else if (isPageRefFolder(currentObjForRelease)) {
+            // in order to decide if a pageref can be released, one has
+            // to check if the referenced page exists
+            final IDProvider.DependentReleaseType releaseType;
+            if (checkOnly) {
+                releaseType = IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY;
+            } else {
+                releaseType = IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE;
+            }
+            releaseResult =
+                releaseOperation.ensureAccessibility(true).recursive(releaseRecursively)
+                    .dependentReleaseType(releaseType).perform(currentObjForRelease);
+        } else if (isPage(currentObjForRelease) || isDocumentGroup(currentObjForRelease) || isMedia(currentObjForRelease)) {
+            releaseResult =
+                releaseOperation.ensureAccessibility(true).recursive(false)
+                    .dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE)
+                    .perform(currentObjForRelease);
+        } else if (isPageFolder(currentObjForRelease) || isMediaFolder(currentObjForRelease)) {
+            releaseResult =
+                releaseOperation.ensureAccessibility(true).recursive(releaseRecursively)
+                    .dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE)
+                    .perform(currentObjForRelease);
+        } else if (isGcaPage(currentObjForRelease) || currentObjForRelease instanceof ProjectProperties || isDataset(currentObjForRelease)) {
+            releaseResult =
+                releaseOperation.ensureAccessibility(false).recursive(false)
+                    .dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE)
+                    .perform(currentObjForRelease);
+        } else if (isGcaFolder(currentObjForRelease) || isSiteStoreRoot(currentObjForRelease)) {
+            releaseResult =
+                releaseOperation.ensureAccessibility(false).recursive(releaseRecursively)
+                    .dependentReleaseType(IDProvider.DependentReleaseType.NO_DEPENDENT_RELEASE)
+                    .perform(currentObjForRelease);
+        }
+        return releaseResult;
+    }
+
+    private boolean shouldBeReleased(final int releaseStatus, final boolean releaseRecursively, final IDProvider currentObjForRelease) {
+        return (releaseStatus != IDProvider.RELEASED || releaseRecursively)
+               && !isTemplate(currentObjForRelease) && !isDataSource(currentObjForRelease) && !isDataSourceFolder(
+            currentObjForRelease);
+    }
+
+    private boolean isReleasable(final IDProvider currentObjForRelease, final List<IDProvider> customReleaseElements) {
+        return currentObjForRelease == workflowScriptContext.getElement()
+        || (isPageRef(workflowScriptContext.getElement())
+            && currentObjForRelease == ((PageRef) workflowScriptContext.getElement()).getPage())
+        || isMedia(currentObjForRelease) || isPageRefFolder(currentObjForRelease) || isSiteStoreRoot(currentObjForRelease)
+        || customReleaseElements.contains(currentObjForRelease)
+        || ((new FormEvaluator(workflowScriptContext)).getCheckboxValue(WorkflowConstants.RECURSIVE_FORM_REFNAME)
+            && (isPageFolder(currentObjForRelease) || isPage(currentObjForRelease) || isMediaFolder(currentObjForRelease)
+                || isMedia(currentObjForRelease) || isPageRefFolder(currentObjForRelease) || isPageRef(currentObjForRelease)
+                || isDocumentGroup(currentObjForRelease) || isGcaFolder(currentObjForRelease)
+                || isGcaPage(currentObjForRelease)));
+    }
+
+    private IDProvider getObjectAsIDProvider(final Object object) {
+        return object instanceof IDProvider ? (IDProvider) object : ((ReferenceEntry) object).getReferencedElement();
+    }
+
+    private boolean isDataSourceFolder(final IDProvider idProvider) {
         return idProvider instanceof ContentFolder;
     }
 
-    private static boolean isDataSource(final IDProvider idProvider) {
+    private boolean isDataSource(final IDProvider idProvider) {
         return idProvider instanceof Content2;
     }
 
-    private static boolean isTemplate(final IDProvider idProvider) {
+    private boolean isDataset(final IDProvider idProvider) {
+        return idProvider instanceof Dataset;
+    }
+
+    private boolean isTemplate(final IDProvider idProvider) {
         return idProvider instanceof TemplateStoreElement;
     }
 
-    private static boolean isSiteStoreRoot(final IDProvider idProvider) {
+    private boolean isSiteStoreRoot(final IDProvider idProvider) {
         return idProvider instanceof SiteStoreRoot;
     }
 
-    private static boolean isGcaPage(final IDProvider idProvider) {
+    private boolean isGcaPage(final IDProvider idProvider) {
         return idProvider instanceof GCAPage;
     }
 
-    private static boolean isGcaFolder(final IDProvider idProvider) {
+    private boolean isGcaFolder(final IDProvider idProvider) {
         return idProvider instanceof GCAFolder;
     }
 
-    private static boolean isDocumentGroup(final IDProvider idProvider) {
+    private boolean isDocumentGroup(final IDProvider idProvider) {
         return idProvider instanceof DocumentGroup;
     }
 
-    private static boolean isMediaFolder(final IDProvider idProvider) {
+    private boolean isMediaFolder(final IDProvider idProvider) {
         return idProvider instanceof MediaFolder;
     }
 
-    private static boolean isPageRefFolder(final IDProvider idProvider) {
+    private boolean isPageRefFolder(final IDProvider idProvider) {
         return idProvider instanceof PageRefFolder;
     }
 
-    private static boolean isMedia(final IDProvider idProvider) {
+    private boolean isMedia(final IDProvider idProvider) {
         return idProvider instanceof Media;
     }
 
-    private static boolean isPageFolder(final IDProvider idProvider) {
+    private boolean isPageFolder(final IDProvider idProvider) {
         return idProvider instanceof PageFolder;
     }
 
-    private static boolean isPage(final IDProvider idProvider) {
+    private boolean isPage(final IDProvider idProvider) {
         return idProvider instanceof Page;
     }
 
-    private static boolean isPageRef(final IDProvider idProvider) {
+    private boolean isPageRef(final IDProvider idProvider) {
         return idProvider instanceof PageRef;
     }
 
@@ -387,8 +429,8 @@ public class ReleaseObject {
     }
 
 
-    private static boolean handleResult(final Set<BasicInfo> lockedList, final Set<BasicInfo> permList, ReleaseOperation.ReleaseResult releaseResult,
-                                            final IDProvider idProvider) {
+    private boolean handleResult(final Set<BasicInfo> lockedList, final Set<BasicInfo> permList, ReleaseOperation.ReleaseResult releaseResult,
+                                 final IDProvider idProvider) {
         boolean result = true;
         try {
             Logging.logInfo("Release Result: " + releaseResult.isSuccessful(), LOGGER);
@@ -397,7 +439,7 @@ public class ReleaseObject {
             final Set<BasicInfo> missingPermission = releaseResult.getProblematicElements().get(ReleaseProblem.MISSING_PERMISSION);
             Logging.logInfo("Released Elements:", LOGGER);
             for (final BasicInfo released : releaseResult.getReleasedElements()) {
-                if(!released.isEntity()) {
+                if (!released.isEntity()) {
                     Logging.logInfo("  id:" + ((BasicElementInfo) released).getNodeId(), LOGGER);
                 } else {
                     Logging.logInfo("  name:" + released.getName(), LOGGER);
@@ -413,8 +455,8 @@ public class ReleaseObject {
                 result = false;
             }
         } catch (final Exception e) {
-                        Logging.logError("Exception during Release of " + idProvider, e, LOGGER);
-                        result = false;
+            Logging.logError("Exception during Release of " + idProvider, e, LOGGER);
+            result = false;
         }
         return result;
     }
@@ -424,8 +466,7 @@ public class ReleaseObject {
         if (type.equals(WorkflowConstants.RELEASE_PAGEREF_ELEMENTS)) {
             final Object releasePageRefElements = workflowScriptContext.getSession().get(WorkflowConstants.RELEASE_PAGEREF_ELEMENTS);
             if (releasePageRefElements != null) {
-                @SuppressWarnings("unchecked")
-                final List<String> releasePageRefUids = (List<String>) releasePageRefElements;
+                @SuppressWarnings("unchecked") final List<String> releasePageRefUids = (List<String>) releasePageRefElements;
                 for (final String pageRefUid : releasePageRefUids) {
                     final PageRef pageRef = new StoreUtil(workflowScriptContext).loadPageRefByUid(pageRefUid);
                     customReleaseElements.add(pageRef);
@@ -439,8 +480,8 @@ public class ReleaseObject {
     /**
      * This method is used to release an entity.
      *
-     * @param content2 The content2 object of the entity.
-     * @param entity The Entity to release.
+     * @param content2  The content2 object of the entity.
+     * @param entity    The Entity to release.
      * @param checkOnly Determines if the method should do only a check or really release the object.
      * @return true if successful.
      */
@@ -473,12 +514,12 @@ public class ReleaseObject {
      */
     private String createErrorString(final Object id) {
         final QueryAgent queryAgent = workflowScriptContext.requireSpecialist(QueryAgent.TYPE);
-        final Iterable<IDProvider> hits = queryAgent.answer("fs.id=" + id);
+        final Iterable<IDProvider> hits = queryAgent.answer("fs.id=" + id, null);
         if (hits.iterator().hasNext()) {
             final IDProvider element = hits.iterator().next();
             if (element.hasUid()) {
                 return element.getDisplayName(new FsLocale(workflowScriptContext).getLanguage()) + " (" + element.getUid() + ", " + element.getId()
-                    + ")\n";
+                       + ")\n";
             } else {
                 return "";
             }

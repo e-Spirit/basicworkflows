@@ -51,13 +51,10 @@ public class WfShowNotReleasedObjectsExecutable extends AbstractWorkflowExecutab
         final StringBuilder messageBuilder = new StringBuilder();
 
         final Map<String, IDProvider.UidType>
-            notReleasedElements =
-				WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
+            notReleasedElements = WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_NOT_RELEASED_ELEMENTS);
         final boolean brokenReferences = WorkflowSessionHelper.readBooleanFromSession(workflowScriptContext, WorkflowConstants.WF_BROKEN_REFERENCES);
         final Map<String, IDProvider.UidType>
-                    objectsInWorkflow =
-        				WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_OBJECTS_IN_WORKFLOW);
-
+            objectsInWorkflow = WorkflowSessionHelper.readMapFromSession(workflowScriptContext, WorkflowConstants.WF_OBJECTS_IN_WORKFLOW);
 
         final String releaseObjectsLabel = bundle.getString("releaseObjects");
         renderMessage(messageBuilder, notReleasedElements, releaseObjectsLabel);
@@ -71,14 +68,14 @@ public class WfShowNotReleasedObjectsExecutable extends AbstractWorkflowExecutab
             messageBuilder.append(brokenReferencesLabel);
         }
 
-       if((mapContainsItems(notReleasedElements) || brokenReferences) && !objectsInWorkflow.isEmpty()) {
-           messageBuilder.append("\n\n");
+        if ((mapContainsItems(notReleasedElements) || brokenReferences) && !objectsInWorkflow.isEmpty()) {
+            messageBuilder.append("\n\n");
         }
 
-       if(!objectsInWorkflow.isEmpty()) {
+        if (!objectsInWorkflow.isEmpty()) {
             final String objectsInWorkflowLabel = bundle.getString("objectsInWorkflow");
             renderMessage(messageBuilder, objectsInWorkflow, objectsInWorkflowLabel);
-       }
+        }
 
         showDialog(workflowScriptContext, bundle.getString("conflicts") + ":\n\n", messageBuilder.toString());
 
@@ -104,5 +101,4 @@ public class WfShowNotReleasedObjectsExecutable extends AbstractWorkflowExecutab
             }
         }
     }
-
 }

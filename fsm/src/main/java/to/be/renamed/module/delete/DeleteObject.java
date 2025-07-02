@@ -74,7 +74,7 @@ public class DeleteObject {
     /**
      * The workflowScriptContext from the workflow.
      */
-    private WorkflowScriptContext workflowScriptContext;
+    private final WorkflowScriptContext workflowScriptContext;
     /**
      * The result of the delete operation, defaults to successful.
      */
@@ -102,11 +102,11 @@ public class DeleteObject {
     /**
      * List of objects that should be deleted.
      */
-    private List<IDProvider> deleteObjects = new ArrayList<>();
+    private final List<IDProvider> deleteObjects = new ArrayList<>();
     /**
      * List of objects that should be released.
      */
-    private List<IDProvider> releaseObjects = new ArrayList<>();
+    private final List<IDProvider> releaseObjects = new ArrayList<>();
 
 
     /**
@@ -118,8 +118,7 @@ public class DeleteObject {
 
         this.workflowScriptContext = workflowScriptContext;
         // check if content2 object
-        if (workflowScriptContext.getWorkflowable() instanceof ContentWorkflowable) {
-            ContentWorkflowable contentWorkflowable = (ContentWorkflowable) workflowScriptContext.getWorkflowable();
+        if (workflowScriptContext.getWorkflowable() instanceof final ContentWorkflowable contentWorkflowable) {
             entity = contentWorkflowable.getEntity();
         } else {
             idProvider = workflowScriptContext.getElement();
@@ -167,9 +166,7 @@ public class DeleteObject {
                 content2.setLock(true, false);
                 content2.save();
                 content2.setLock(false, false);
-            } catch (LockException e) {
-                Logging.logError(EXCEPTION + entity, e, LOGGER);
-            } catch (ElementDeletedException e) {
+            } catch (LockException | ElementDeletedException e) {
                 Logging.logError(EXCEPTION + entity, e, LOGGER);
             }
         }
@@ -246,16 +243,13 @@ public class DeleteObject {
         // lock workflow element first
         try {
             workflowScriptContext.getElement().setLock(false, false);
-        } catch (LockException e) {
-            Logging.logError(EXCEPTION + idProvider, e, LOGGER);
-        } catch (ElementDeletedException e) {
+        } catch (LockException | ElementDeletedException e) {
             Logging.logError(EXCEPTION + idProvider, e, LOGGER);
         }
 
         // delete elements
-
         DeleteOperation.Result deleteResult = deleteIgnoringReferences(deleteObjects);
-        if(deleteResult != null) {
+        if (deleteResult != null) {
             result = deleteResult.isSuccessful();
             final Set<BasicInfo> lockedFailed = deleteResult.getLockFailedElements();
             final Set<BasicInfo> missingPermission = deleteResult.getMissingPermissionElements();
@@ -277,7 +271,7 @@ public class DeleteObject {
         if (lockedFailed != null && !lockedFailed.isEmpty()) {
             Logging.logInfo("LockFailedElements:", LOGGER);
             for (BasicInfo locked : lockedFailed) {
-                if(!locked.isEntity()) {
+                if (!locked.isEntity()) {
                     Logging.logInfo(ID + ((BasicElementInfo) locked).getNodeId(), LOGGER);
                 }
             }
@@ -286,7 +280,7 @@ public class DeleteObject {
             Logging.logInfo("MissingPermissionElement", LOGGER);
 
             for (BasicInfo missing : missingPermission) {
-                if(!missing.isEntity()) {
+                if (!missing.isEntity()) {
                     Logging.logInfo(ID + ((BasicElementInfo) missing).getNodeId(), LOGGER);
                 }
             }
@@ -319,7 +313,7 @@ public class DeleteObject {
         ReleaseOperation.ReleaseResult releaseResult;
         for (IDProvider idProv : releaseObjects) {
             releaseResult = releaseWithAccessibilityAndNewOnly(idProv);
-            if(releaseResult != null) {
+            if (releaseResult != null) {
                 final Set<BasicInfo> lockedFailed = releaseResult.getProblematicElements().get(ReleaseProblem.LOCK_FAILED);
                 final Set<BasicInfo> missingPermission = releaseResult.getProblematicElements().get(ReleaseProblem.MISSING_PERMISSION);
                 Logging.logInfo("Release Result: " + releaseResult.isSuccessful(), LOGGER);
@@ -351,9 +345,11 @@ public class DeleteObject {
         ReleaseOperation releaseOperation = operationAgent.getOperation(ReleaseOperation.TYPE);
         ReleaseOperation.ReleaseResult releaseResult = null;
         try {
-            releaseResult = releaseOperation.checkOnly(false).ensureAccessibility(true).recursive(false).dependentReleaseType(IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY).perform(idProv);
+            releaseResult =
+                releaseOperation.checkOnly(false).ensureAccessibility(true).recursive(false)
+                    .dependentReleaseType(IDProvider.DependentReleaseType.DEPENDENT_RELEASE_NEW_ONLY).perform(idProv);
         } catch (Exception e) {
-            Logging.logInfo("Failed to release IdProvider with id: " + idProv.getId() +"\n" + e, LOGGER);
+            Logging.logInfo("Failed to release IdProvider with id: " + idProv.getId() + "\n" + e, LOGGER);
         }
         return releaseResult;
     }
@@ -380,7 +376,7 @@ public class DeleteObject {
             } else if (idProvider instanceof DocumentGroup) {
                 // add current PageRefStore element and PageRefFolders (up-recursive)
                 regardPageRefStore();
-            //Added for media management in CC (since FS 5.2)
+                //Added for media management in CC (since FS 5.2)
             } else if (idProvider instanceof Media || idProvider instanceof MediaFolder) {
                 //false == don't delete parent folder, see FSFIVE-53
                 final boolean deleteEmptyParent = true;
@@ -453,7 +449,7 @@ public class DeleteObject {
             element = element.getParent();
             final ReferenceEntry[] incomingReferences = element.getIncomingReferences();
             // only use elements that are no longer in use
-            if(incomingReferences.length == 0) {
+            if (incomingReferences.length == 0) {
                 Logging.logInfo("Checking parent element " + element.getUid() + " of child element " + childElement.getUid(), LOGGER);
                 Iterator<StoreElement> iter = element.getChildren(filter, false).iterator();
                 // folder has at least one element -- our child
