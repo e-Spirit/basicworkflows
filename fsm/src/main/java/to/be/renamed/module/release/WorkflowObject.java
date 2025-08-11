@@ -398,9 +398,6 @@ class WorkflowObject {
                     recordIncorrectElement(notReleasedElements, idProvider);
                 }
             }
-            if (idProvider != null) {
-                checkObjectInWorkflow(idProvider, referenceResult, elementsInWorkflow);
-            }
         }
     }
 
