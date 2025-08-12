@@ -256,9 +256,11 @@ public class WfReleaseExecutable extends AbstractWorkflowExecutable {
         if (storeElement instanceof final SiteStoreFolder storeElementFolder) {
             final StartNode startNode = storeElementFolder.getStartNode();
 
-            boolean isInReleaseStore = languages.length > 0 ? startNode.isReachableInReleaseStore(languages) : startNode.isInReleaseStore();
-            if (startNode != null && !isInReleaseStore) {
-                neverReleasedStartNodes.add(startNode);
+            if (startNode != null) {
+                boolean isInReleaseStore = languages.length > 0 ? startNode.isReachableInReleaseStore(languages) : startNode.isInReleaseStore();
+                if (!isInReleaseStore) {
+                    neverReleasedStartNodes.add(startNode);
+                }
             }
         }
 
