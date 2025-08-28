@@ -272,8 +272,8 @@ public class ReleaseObject {
                                 }
                             }
                         }
+                        currentObjForRelease.refresh();
                     }
-                    currentObjForRelease.refresh();
                 }
             }
         } catch (final Exception e) {
