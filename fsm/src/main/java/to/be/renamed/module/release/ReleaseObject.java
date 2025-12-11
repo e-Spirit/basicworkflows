@@ -245,9 +245,9 @@ public class ReleaseObject {
                                     continue;
                                 }
                                 if (validationErrorList.isEmpty()) {
-                                    // check release
-                                    if (currentObjForRelease == workflowScriptContext.getElement()) {
-                                        // unlock element that runs the workflow
+                                    boolean wasLockedBefore = currentObjForRelease.isLocked();
+                                    // unlock element that runs the workflow
+                                    if (currentObjForRelease == workflowScriptContext.getElement() && wasLockedBefore) {
                                         currentObjForRelease.setLock(false, false);
                                     }
 
@@ -263,7 +263,7 @@ public class ReleaseObject {
 
                                     releaseResult = performRelease(currentObjForRelease, checkOnly, releaseOperation, releaseRecursively);
                                     result = handleResult(lockedList, permList, releaseResult, currentObjForRelease);
-                                    if (currentObjForRelease.equals(workflowScriptContext.getElement())) {
+                                    if (currentObjForRelease.equals(workflowScriptContext.getElement()) && wasLockedBefore) {
                                         currentObjForRelease.setLock(true, false);
                                     }
                                 } else {
