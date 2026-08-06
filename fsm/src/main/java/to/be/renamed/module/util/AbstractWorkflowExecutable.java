@@ -1,7 +1,7 @@
 /*
  * BasicWorkflows Module
  * %%
- * Copyright (C) 2012 - 2023 Crownpeak Technology GmbH - https://www.crownpeak.com
+ * Copyright (C) 2012 - 2025 Crownpeak Technology GmbH - https://www.crownpeak.com
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package to.be.renamed.module.util;
 
+import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
 import de.espirit.firstspirit.access.script.Executable;
 import de.espirit.firstspirit.access.store.IDProvider;
@@ -86,6 +87,10 @@ public abstract class AbstractWorkflowExecutable implements Executable {
         return ResourceBundle.getBundle(WorkflowConstants.MESSAGES, locale);
     }
 
+    protected ResourceBundle loadEnglishResourceBundle() {
+        return ResourceBundle.getBundle(WorkflowConstants.MESSAGES, Locale.ENGLISH);
+    }
+
     @Override
     public final Object execute(final Map<String, Object> args, final Writer out, final Writer err) {
         return execute(args);
@@ -125,6 +130,94 @@ public abstract class AbstractWorkflowExecutable implements Executable {
             // Always return true for integration tests
             return true;
         }
+    }
+
+    /**
+     * A convenience method to display a question dialog with custom button labels.
+     *
+     * @param workflowScriptContext The context to use.
+     * @param title                 The pop-up title.
+     * @param question              The question to display.
+     * @param positiveLabel         The label for the positive button.
+     * @param negativeLabel         The label for the negative button.
+     * @return true if user clicked the positive button, false otherwise
+     */
+    protected boolean showCustomQuestionDialog(final WorkflowScriptContext workflowScriptContext, final String title,
+                                               final String question, final String positiveLabel, final String negativeLabel) {
+        final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
+        if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
+            final Dialog dialog = new Dialog(workflowScriptContext);
+            return dialog.showCustomQuestion(title, question, positiveLabel, negativeLabel);
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * A convenience method to display an HTML info dialog via ClientScriptOperation (for ContentCreator).
+     *
+     * @param workflowScriptContext The context to use.
+     * @param title                 The dialog title.
+     * @param htmlContent           The HTML content to display.
+     */
+    protected void showHtmlDialog(final WorkflowScriptContext workflowScriptContext, final String title, final String htmlContent) {
+        final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
+        if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
+            final Dialog dialog = new Dialog(workflowScriptContext);
+            dialog.showHtmlInfo(title, htmlContent);
+        }
+    }
+
+    /**
+     * A convenience method to display an HTML question dialog via ClientScriptOperation (for ContentCreator).
+     *
+     * @param workflowScriptContext The context to use.
+     * @param title                 The dialog title.
+     * @param htmlContent           The HTML content to display.
+     * @param yesLabel              The label for the positive button.
+     * @param noLabel               The label for the negative button.
+     * @return true if user clicked Yes, false otherwise
+     */
+    protected boolean showHtmlQuestionDialog(final WorkflowScriptContext workflowScriptContext, final String title,
+                                             final String htmlContent, final String yesLabel, final String noLabel) {
+        final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
+        if (!WorkflowConstants.TRUE.equals(suppressDialog)) {
+            final Dialog dialog = new Dialog(workflowScriptContext);
+            return dialog.showHtmlQuestion(title, htmlContent, yesLabel, noLabel);
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Shows the AI review loading overlay in ContentCreator (WebEdit only).
+     * No-op when dialog suppression is active (test mode) or when not in WebEdit.
+     *
+     * @param workflowScriptContext the workflow script context
+     * @param title                 the overlay header
+     * @param message               the loading message shown below the spinner
+     * @since 1.6.0
+     */
+    protected void showAiReviewLoadingIndicator(final WorkflowScriptContext workflowScriptContext,
+                                                final String title, final String message) {
+        final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
+        if (WorkflowConstants.TRUE.equals(suppressDialog)) return;
+        if (!workflowScriptContext.is(BaseContext.Env.WEBEDIT)) return;
+        new Dialog(workflowScriptContext).showLoadingOverlay(title, message);
+    }
+
+    /**
+     * Removes the AI review loading overlay in ContentCreator (WebEdit only).
+     * No-op when dialog suppression is active (test mode) or when not in WebEdit.
+     *
+     * @param workflowScriptContext the workflow script context
+     * @since 1.6.0
+     */
+    protected void hideAiReviewLoadingIndicator(final WorkflowScriptContext workflowScriptContext) {
+        final String suppressDialog = (String) workflowScriptContext.getSession().get(WorkflowConstants.WF_SUPPRESS_DIALOG);
+        if (WorkflowConstants.TRUE.equals(suppressDialog)) return;
+        if (!workflowScriptContext.is(BaseContext.Env.WEBEDIT)) return;
+        new Dialog(workflowScriptContext).hideLoadingOverlay();
     }
 
     /**

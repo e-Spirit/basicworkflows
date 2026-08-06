@@ -38,6 +38,14 @@ The built fsm file will be located at
 fsm/build/fsm
 ```
 
+## Check compliance
+
+Compliance is verified automatically as part of every build. To run it in isolation:
+
+```bash
+./gradlew checkCompliance
+```
+
 ## Resources
 
 [Documentation](https://docs.e-spirit.com/module/basicworkflows/BasicWorkflows_Documentation_EN.html)

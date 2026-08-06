@@ -26,11 +26,13 @@ buildscript {
 
 plugins {
     id("de.espirit.firstspirit") version "2.0.0"
-    id("de.espirit.firstspirit-module") version "6.1.0"
+    id("de.espirit.firstspirit-module") version "8.0.2"
 }
 
 dependencies {
     compileOnly("de.espirit.firstspirit:fs-isolated-runtime:$fsRuntimeVersion")
+    fsModuleCompile("com.google.code.gson:gson:2.12.0")
+    fsWebCompile("com.google.code.gson:gson:2.12.0")
 }
 
 firstSpiritModule {
@@ -38,6 +40,10 @@ firstSpiritModule {
     displayName = fsDisplayName
     vendor = fsVendor
     description = fsDescription
+}
+
+tasks.check {
+    dependsOn(tasks.checkCompliance)
 }
 
 publishing {
@@ -61,3 +67,22 @@ publishing {
 }
 
 tasks.findByName("publish")?.dependsOn("build")
+
+// Bundle the ContentTransport feature exports as runtime resources so the
+// module class can load them from the classpath during install/update.
+val copyFeatureExports by tasks.registering(Copy::class) {
+    from(rootProject.file("exports")) {
+        include("basicworkflows-export-basic-delete.zip")
+        include("basicworkflows-export-basic-release.zip")
+        include("basicworkflows-export-basic-release-with-ai-review.zip")
+    }
+    into(layout.buildDirectory.dir("generated-resources/feature-exports/to/be/renamed/module/deploy"))
+}
+
+sourceSets.named("main") {
+    resources.srcDir(layout.buildDirectory.dir("generated-resources/feature-exports"))
+}
+
+tasks.named("processResources") {
+    dependsOn(copyFeatureExports)
+}
