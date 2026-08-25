@@ -83,32 +83,26 @@ public final class FormDataExtractionHelper {
         try {
             int fieldCount = 0;
 
-            for (Object element : formData.getForm()) {
-                String name = null;
-                String displayName = null;
+            // Read editors via GomEditorProvider.forms(), which resolves ALL form fields
+            // recursively — including those nested inside container elements such as CMS_GROUP.
+            // Iterating the GomEditorProvider directly (it is a List<GomElement>) only yields the
+            // top-level nodes; a container like CMS_GROUP is a GomElement but not a GomFormElement,
+            // so its inner fields would be skipped entirely and never reach the AI review.
+            for (final GomFormElement gomElement : formData.getForm().forms()) {
+                final String name = gomElement.getName().toString();
+                final String label = gomElement.label(language.getAbbreviation());
+                final String displayName =
+                        (label != null && !label.equals(name)) ? label + " (" + name + ")" : name;
 
-                if (element instanceof final GomFormElement gomElement) {
-                    name = gomElement.getName().toString();
-                    final String label = gomElement.label(language.getAbbreviation());
-                    displayName = (label != null && !label.equals(name)) ? label + " (" + name + ")" : name;
-                } else if (element instanceof final FormField<?> field) {
-                    name = field.getName();
-                    displayName = name;
+                fieldCount++;
+                final Object unwrapped = unwrap(formData.get(language, name), language);
+                Logging.logInfo("Field " + fieldCount + ": " + displayName +
+                        " -> " + (unwrapped != null ? unwrapped.getClass().getSimpleName() : "null"), LOGGER);
+
+                if (unwrapped == null) {
+                    content.append(displayName).append(": (empty)\n");
                 } else {
-                    Logging.logInfo("Skipping non-field element: " + element.getClass().getSimpleName(), LOGGER);
-                }
-
-                if (name != null) {
-                    fieldCount++;
-                    final Object unwrapped = unwrap(formData.get(language, name), language);
-                    Logging.logInfo("Field " + fieldCount + ": " + displayName +
-                            " -> " + (unwrapped != null ? unwrapped.getClass().getSimpleName() : "null"), LOGGER);
-
-                    if (unwrapped == null) {
-                        content.append(displayName).append(": (empty)\n");
-                    } else {
-                        handleValue(unwrapped, language, displayName, content, visitedIds);
-                    }
+                    handleValue(unwrapped, language, displayName, content, visitedIds);
                 }
             }
 
