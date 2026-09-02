@@ -54,6 +54,26 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
 
     public static final Class<?> LOGGER = BasicWorkflowStatusProvider.class;
 
+    /**
+     * The {@code State.NEVER_RELEASED} constant when the running FirstSpirit server provides it
+     * (FS 2026.9+), otherwise {@code null}. It is resolved reflectively through {@link State#values()}
+     * so the symbol {@code State.NEVER_RELEASED} never appears as a hard reference in the compiled
+     * bytecode. That keeps this module loadable on older servers whose {@code State} enum does not yet
+     * declare the constant, where a direct reference would fail with a {@link NoSuchFieldError} the
+     * first time the field is accessed. When {@code null}, never-released elements fall back to the
+     * previous {@code CHANGED} ("Modified") behaviour.
+     */
+    private static final State NEVER_RELEASED_STATE = resolveNeverReleasedState();
+
+    private static State resolveNeverReleasedState() {
+        for (final State state : State.values()) {
+            if ("NEVER_RELEASED".equals(state.name())) {
+                return state;
+            }
+        }
+        return null;
+    }
+
     @Override
     public @NotNull State getReleaseState(final @NotNull IDProvider element) {
         State state;
@@ -110,28 +130,26 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     public @NotNull List<WorkflowGroup> getWorkflowGroups(final @NotNull IDProvider element) {
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
-
-        String headline = switch (getReleaseState(element)) {
-            case IN_WORKFLOW -> bundle.getString("inWorkflow");
-            case CHANGED -> bundle.getString("modified");
-            case RELEASED -> bundle.getString("released");
-        };
-
-        return getWorkflowGroups(element, headline);
+        return getWorkflowGroups(element, headlineFor(getReleaseState(element), bundle));
     }
 
     @Override
     public @NotNull List<WorkflowGroup> getWorkflowGroups(@NotNull final IDProvider element, @NotNull final Language language) {
         ResourceBundle.clearCache();
         final ResourceBundle bundle = ResourceBundle.getBundle(WorkflowConstants.MESSAGES, new FsLocale(context).get());
+        return getWorkflowGroups(element, headlineFor(getReleaseState(element, language), bundle));
+    }
 
-        String headline = switch (getReleaseState(element, language)) {
-            case IN_WORKFLOW -> bundle.getString("inWorkflow");
-            case CHANGED -> bundle.getString("modified");
-            case RELEASED -> bundle.getString("released");
-        };
-
-        return getWorkflowGroups(element, headline);
+    private static String headlineFor(final State state, final ResourceBundle bundle) {
+        if (state == State.IN_WORKFLOW) {
+            return bundle.getString("inWorkflow");
+        } else if (state == State.RELEASED) {
+            return bundle.getString("released");
+        } else if (NEVER_RELEASED_STATE != null && state == NEVER_RELEASED_STATE) {
+            return bundle.getString("neverReleased");
+        } else {
+            return bundle.getString("modified");
+        }
     }
 
     @NotNull
@@ -156,13 +174,35 @@ public class BasicWorkflowStatusProvider implements WebeditElementStatusProvider
     }
 
     private static State getElementReleaseState(final IDProvider element, final Language language) {
+        return getElementReleaseState(element, language, NEVER_RELEASED_STATE);
+    }
+
+    static State getElementReleaseState(final IDProvider element, final Language language, final State neverReleasedState) {
         if (element.hasTask()) {
             return State.IN_WORKFLOW;
+        } else if (neverReleasedState != null && isNeverReleased(element, language)) {
+            return neverReleasedState;
         } else if (isNotReleased(element, language)) {
             return State.CHANGED;
         }
 
         return State.RELEASED;
+    }
+
+    /**
+     * Returns true when the element's release status is {@link IDProvider#NEVER_RELEASED}, meaning it
+     * has never had a released version.
+     * <p>
+     * {@link Dataset}s are excluded: matching the built-in providers, never-released datasets keep the
+     * {@code CHANGED} ("Modified") status because the dedicated {@code NEVER_RELEASED} state cannot be
+     * represented in data source management for technical reasons.
+     */
+    private static boolean isNeverReleased(final IDProvider element, final Language language) {
+        if (!element.isReleaseSupported() || element instanceof Dataset) {
+            return false;
+        }
+        int status = language == null ? element.getReleaseStatus() : element.getReleaseStatus(language);
+        return status == IDProvider.NEVER_RELEASED;
     }
 
     /**
