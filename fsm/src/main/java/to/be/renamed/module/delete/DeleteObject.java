@@ -18,8 +18,10 @@
 package to.be.renamed.module.delete;
 
 import de.espirit.common.base.Logging;
+import de.espirit.firstspirit.access.AdminService;
 import de.espirit.firstspirit.access.BaseContext;
 import de.espirit.firstspirit.access.ReferenceEntry;
+import de.espirit.firstspirit.access.User;
 import de.espirit.firstspirit.access.store.BasicElementInfo;
 import de.espirit.firstspirit.access.store.BasicInfo;
 import de.espirit.firstspirit.access.store.ElementDeletedException;
@@ -487,9 +489,54 @@ public class DeleteObject {
             } else {
                 lockedObjectList.add(idProv.getName());
             }
+            lockedObjectList.add(findLockOwner(idProv));
             lockedObjects.add(lockedObjectList);
         }
         // put referenced objects to session for further use
         workflowScriptContext.getSession().put("wfLockedObjects", lockedObjects);
+    }
+
+
+    /**
+     * Determines the user holding the lock on an element that is locked by another session.
+     * The Access API exposes the lock owner only via the LockException of a failed lock attempt.
+     *
+     * @param idProv The element locked by another session.
+     * @return The real name and login of the lock owner, or null if it can't be determined.
+     */
+    private String findLockOwner(IDProvider idProv) {
+        try {
+            idProv.setLock(true, false);
+            // lock was released in the meantime, give it back
+            idProv.setLock(false, false);
+        } catch (LockException e) {
+            if (e.getUserLoginName() != null) {
+                return formatUser(e.getUserId(), e.getUserLoginName());
+            }
+        } catch (Exception e) {
+            Logging.logWarning("Could not determine lock owner of " + idProv, e, LOGGER);
+        }
+        return null;
+    }
+
+
+    /**
+     * Formats a user as "real name (login)", falling back to the login name.
+     *
+     * @param userId    The id of the user.
+     * @param loginName The login name of the user.
+     * @return The formatted user.
+     */
+    private String formatUser(long userId, String loginName) {
+        try {
+            final User user = workflowScriptContext.getConnection().getService(AdminService.class).getUserStorage().getUserByID(userId);
+            if (user != null && user.getRealname() != null && !user.getRealname().isBlank()
+                    && !user.getRealname().equals(loginName)) {
+                return user.getRealname() + " (" + loginName + ")";
+            }
+        } catch (Exception e) {
+            Logging.logWarning("Could not resolve user " + loginName, e, LOGGER);
+        }
+        return loginName;
     }
 }

@@ -77,10 +77,15 @@ public class WfDeleteTestExecutable extends AbstractWorkflowExecutable {
                     for (List lockedObject : lockedObjects) {
                         String elementType = (String) lockedObject.get(0);
                         String uid = (String) lockedObject.get(1);
-                        notReleased.append(uid).append(" (").append(elementType).append(")\n");
+                        notReleased.append(uid).append(" (").append(elementType).append(")");
+                        String lockOwner = lockedObject.size() > 2 ? (String) lockedObject.get(2) : null;
+                        if (lockOwner != null) {
+                            notReleased.append(" - ").append(bundle.getString("lockedBy")).append(": ").append(lockOwner);
+                        }
+                        notReleased.append("\n");
                     }
                     // show dialog
-                    showDialog(workflowScriptContext, bundle.getString(bundle.getString("objectsLocked") + ":\n\n"), notReleased.toString());
+                    showDialog(workflowScriptContext, bundle.getString(WorkflowConstants.ERROR_MSG), notReleased.toString());
                 }
                 workflowScriptContext.doTransition("trigger_test_failed");
             } catch (IllegalAccessException e) {
